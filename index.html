@@ -997,7 +997,115 @@ const QUESTIONS = {
         { label: "(C) 아직 흐릿하다",                     value: "C", tags: { extra_explore: true } },
         { label: "(D) 오히려 더 복잡해진 느낌이다",       value: "D", tags: { extra_explore: true } }
       ]
-    }
+    },
+
+    /* Part F — 12문항 교차 검증 (1겹: F1~F4 행동 / 2겹: F5~F8 역방향+갈망 / 3겹: F9~F12 축 재검증) */
+    partF: [
+      // ====== 1겹: Phase 1 행동 데이터 교차 ======
+      { id: "F1", type: "single", part: "F",
+        text: "Phase 1에서 당신이 실제로 가장 많은 시간을 쓴 활동은 [QB1 결과]였습니다. 지금 세우려는 목표와 관련이 있나요?",
+        options: [
+          { label: "(A) 직접적으로 관련 있다 — 이미 행동으로 옮기고 있었다", value: "A", tags: { consistency: 1.0 } },
+          { label: "(B) 간접적으로 관련 있다 — 연결고리가 보인다",          value: "B", tags: { consistency: 0.66 } },
+          { label: "(C) 관련 없지만 괜찮다 — 이것은 새로운 도전이니까",      value: "C", tags: { consistency: 0.33 } },
+          { label: "(D) 관련 없어서 좀 걱정된다 — 정말 할 수 있을까",        value: "D", tags: { consistency: 0.0, extra_explore: true } }
+        ]
+      },
+      { id: "F2", type: "single", part: "F",
+        text: "Phase 1에서 당신이 가장 자주 소비한 콘텐츠는 [QB2 결과] 분야였습니다. 지금 세우려는 목표와의 관계는?",
+        options: [
+          { label: "(A) 같은 분야다 — 관심이 일관된다",                    value: "A", tags: { consistency: 1.0 } },
+          { label: "(B) 다른 분야이지만, 이제 바꿔야 할 때다",              value: "B", tags: { consistency: 0.66 } },
+          { label: "(C) 관계없다 — 콘텐츠와 목표는 별개다",                value: "C", tags: { consistency: 0.33 } },
+          { label: "(D) 생각해보니 콘텐츠가 내 진짜 관심사일 수도 있다",    value: "D", tags: { consistency: 0.0, extra_explore: true } }
+        ]
+      },
+      { id: "F3", type: "single", part: "F",
+        text: "Phase 1에서 당신이 가장 오래 고민한 주제는 [QB3 결과]였습니다. 이것과 C형 목표의 관계는?",
+        options: [
+          { label: "(A) 바로 이 고민을 해결하는 것이 내 목표다",          value: "A", tags: { consistency: 1.0 } },
+          { label: "(B) 고민과 목표가 같은 뿌리에서 나온 것 같다",        value: "B", tags: { consistency: 0.66 } },
+          { label: "(C) 고민과 목표는 다르지만, 두 가지 다 중요하다",      value: "C", tags: { consistency: 0.33 } },
+          { label: "(D) 솔직히 고민 쪽이 더 급한 것 같기도 하다",          value: "D", tags: { consistency: 0.0, extra_explore: true } }
+        ]
+      },
+      { id: "F4", type: "single", part: "F",
+        text: "Phase 1에서 당신이 충동적으로 돈을 쓴 분야는 [QB4 결과]였습니다. 지금 목표와 같은 분야인가요?",
+        options: [
+          { label: "(A) 같은 분야다",                value: "A", tags: { consistency: 1.0 } },
+          { label: "(B) 다른 분야다",                value: "B", tags: { consistency: 0.0 } },
+          { label: "(C) 충동 소비를 한 적이 없었다",  value: "C", tags: { consistency: 0.5 } }
+        ]
+      },
+
+      // ====== 2겹: 역방향 데이터 + 갈망 프로필 ======
+      { id: "F5", type: "single", part: "F",
+        text: "Phase 1에서 당신이 '10년 후 절대 되고 싶지 않은 모습'으로 [Q36 결과]를 골랐습니다. 지금 세우려는 C형 목표가 이것을 방지하는 데 도움이 되나요?",
+        options: [
+          { label: "(A) 직접적으로 도움이 된다",                                                value: "A", tags: { consistency: 1.0 } },
+          { label: "(B) 간접적으로는 연결된다",                                                  value: "B", tags: { consistency: 0.66 } },
+          { label: "(C) 관련이 없다",                                                           value: "C", tags: { consistency: 0.33 } },
+          { label: "(D) 생각해보니 이 '되고 싶지 않은 모습'을 방지하는 것이 더 시급한 것 같다",   value: "D", tags: { consistency: 0.0, extra_explore: true } }
+        ]
+      },
+      { id: "F6", type: "single", part: "F",
+        text: "Phase 1에서 '100일 동안 절대 하고 싶지 않은 것'으로 [Q37 결과]를 골랐습니다. C형 목표를 추구하면서 이것을 피할 수 있나요?",
+        options: [
+          { label: "(A) 충분히 피할 수 있다",                  value: "A", tags: { consistency: 1.0 } },
+          { label: "(B) 일부는 감수해야 할 수도 있다",         value: "B", tags: { consistency: 0.66 } },
+          { label: "(C) 이것을 해야만 목표를 이룰 수 있다",    value: "C", tags: { consistency: 0.33 } },
+          { label: "(D) 생각해본 적이 없다",                   value: "D", tags: { consistency: 0.0 } }
+        ]
+      },
+      { id: "F7", type: "forced", part: "F",
+        text: "Phase 1에서 당신의 갈망 프로필 1위는 [축 8 결과]였습니다. 지금 C형 목표 후보와 일치하나요?",
+        options: [
+          { label: "(A) 일치한다 — 같은 영역이다",                  value: "A", tags: { consistency: 1.0 } },
+          { label: "(B) 다르다 — C형 목표가 다른 영역에서 나왔다",   value: "B", tags: { consistency: 0.0 } }
+        ]
+      },
+      { id: "F8", type: "single", part: "F",
+        condition: { questionId: "F7", value: "B" }, // F7=B일 때만 표시
+        text: "어느 쪽이 당신의 진짜 갈망에 더 가까운가요?",
+        options: [
+          { label: "(A) Phase 1에서 나온 방향이 더 진짜다",          value: "A", tags: { consistency: 0.0, extra_explore: true } },
+          { label: "(B) Phase 2에서 나온 C형 목표가 더 진짜다",      value: "B", tags: { consistency: 1.0 } },
+          { label: "(C) 둘 다 중요하다 — 연결되어 있다",             value: "C", tags: { consistency: 0.5 } },
+          { label: "(D) 솔직히 모르겠다",                             value: "D", tags: { consistency: 0.0, extra_explore: true } }
+        ]
+      },
+
+      // ====== 3겹: 축 재검증 + 결과 vs 과정 + 검증 후 확신 ======
+      { id: "F9", type: "forced", part: "F",
+        text: "지금 세우려는 C형 목표를 이루는 과정에서, 당신은 주로?",
+        options: [
+          { label: "(A) 나 자신이 변해야 한다",          value: "A", tags: { crossAxis: "axis2", expectedSide: "low" } },
+          { label: "(B) 내 환경이나 조건이 변해야 한다", value: "B", tags: { crossAxis: "axis2", expectedSide: "high" } }
+        ]
+      },
+      { id: "F10", type: "forced", part: "F",
+        text: "이 목표의 성공을 어떻게 확인하고 싶은가요?",
+        options: [
+          { label: "(A) 숫자나 증거로 확인한다",   value: "A", tags: { crossAxis: "axis4", expectedSide: "low" } },
+          { label: "(B) 내 안의 변화로 느낀다",     value: "B", tags: { crossAxis: "axis4", expectedSide: "high" } }
+        ]
+      },
+      { id: "F11", type: "slider", part: "F",
+        text: "당신에게 더 가까운 쪽으로 슬라이더를 움직여 주세요.",
+        leftLabel: "이 목표를 추구하면서 가장 중요한 것은 '결과를 내는 것'이다",
+        rightLabel: "이 목표를 추구하면서 가장 중요한 것은 '과정에서 성장하는 것'이다",
+        tags: { compareWith: ["Q20", "Q28"] }
+      },
+      { id: "F12", type: "single", part: "F",
+        text: "지금까지의 검증을 거치면서, C형 목표 후보에 대한 확신이?",
+        options: [
+          { label: "(A) 더 강해졌다",                  value: "A", tags: { consistency: 1.0 } },
+          { label: "(B) 변하지 않았다",                value: "B", tags: { consistency: 0.66 } },
+          { label: "(C) 약간 흔들린다",                value: "C", tags: { consistency: 0.33 } },
+          { label: "(D) 다른 것이 더 맞는 것 같다",     value: "D", tags: { consistency: 0.0, extra_explore: true } }
+        ]
+      }
+    ]
   }
 };
 /* ---------- Phase 2 루트별 문항 (v3.1, 60문항) ---------- */
@@ -3287,10 +3395,23 @@ function buildPhase2Order(answers, route) {
     ROUTE_QUESTIONS[route].stage2.forEach(q => order.push({ ...q, part: "D_stage2" }));
     ROUTE_QUESTIONS[route].stage3.forEach(q => order.push({ ...q, part: "D_stage3" }));
   }
+
+  // Part F (12문항, F8은 F7=B 조건부)
+  (QUESTIONS.phase2.partF || []).forEach(q => {
+    if (q.condition) {
+      const cond = q.condition;
+      const ans = answers?.[cond.questionId];
+      if (ans?.value === cond.value) {
+        order.push({ ...q, part: "F" });
+      }
+      // 조건 미충족이면 스킵 (예: F7=A 일 때 F8 미포함)
+    } else {
+      order.push({ ...q, part: "F" });
+    }
+  });
+
   return order;
 }
-
-const PHASE2_TOTAL_COUNT = 21; // D1~D5(5) + stage1(5) + MC2(1) + stage2(5) + stage3(5)
 
 /* ---------- 4. 유틸 ---------- */
 const $ = (sel) => document.querySelector(sel);
@@ -3424,6 +3545,70 @@ function buildD1Text(state) {
   const finalArea = state.tournament?.winners?.final;
   const label = (finalArea && AREA_LABELS[finalArea]) ? AREA_LABELS[finalArea] : '당신이 발견한 방향';
   return `Phase 1에서 당신이 가장 끌린 방향은 ${label}입니다. 이 방향에서 떠오르는 가장 구체적인 모습은?`;
+}
+
+// "(A) 운동, 건강 관리" → "운동, 건강 관리"
+function stripOptionPrefix(label) {
+  return (label || '').replace(/^\([A-E]\)\s*/, '').trim();
+}
+
+// 한국어 받침 검사: 마지막 글자에 종성 있으면 true
+function hasJongsung(s) {
+  if (!s) return false;
+  const ch = s.charCodeAt(s.length - 1);
+  if (ch < 0xAC00 || ch > 0xD7A3) return false; // 한글 음절 범위 밖
+  return (ch - 0xAC00) % 28 !== 0;
+}
+
+// Part F (그리고 향후 Part E) 동적 텍스트 placeholder 치환
+// 본문 자체는 미변경. placeholder 직후의 조사("를/을", "는/은", "였/이었" 등)만
+// 받침에 따라 자동 보정. 9.5점 통과 본문은 한 글자도 안 건드림.
+function replacePlaceholders(template, state) {
+  if (!template) return '';
+  const a = state.answers || {};
+
+  const subs = {
+    '[QB1 결과]': stripOptionPrefix(a.QB1?.label),
+    '[QB2 결과]': stripOptionPrefix(a.QB2?.label),
+    '[QB3 결과]': stripOptionPrefix(a.QB3?.label),
+    '[QB4 결과]': stripOptionPrefix(a.QB4?.label),
+    '[Q36 결과]': stripOptionPrefix(a.Q36?.label),
+    '[Q37 결과]': stripOptionPrefix(a.Q37?.label)
+  };
+  const topArea = getTopArea(a, ['Q1','Q2','Q3','Q4','Q5','Q6','Q7','QB1','QB2','QB3','QB4','QB5']);
+  subs['[축 8 결과]'] = (topArea && AREA_LABELS[topArea]) ? AREA_LABELS[topArea] : '아직 정해지지 않은 영역';
+
+  // 위치별 교체 + 직후 조사 보정
+  const placeholders = Object.keys(subs);
+  // 패턴: |placeholder + 어절경계 없는 조사
+  const particleAdjust = (afterText, hasJong) => {
+    let out = afterText;
+    out = out.replace(/^(을|를)/,    hasJong ? '을' : '를');
+    out = out.replace(/^(은|는)/,    hasJong ? '은' : '는');
+    out = out.replace(/^(이|가)(?=\s|$|[.,?!])/, hasJong ? '이' : '가');
+    out = out.replace(/^(이었|였)/,  hasJong ? '이었' : '였');
+    return out;
+  };
+
+  let out = template;
+  let safetyMax = 50; // 무한 루프 방지
+  while (safetyMax-- > 0) {
+    let earliestIdx = -1, earliestKey = null;
+    for (const k of placeholders) {
+      const i = out.indexOf(k);
+      if (i !== -1 && (earliestIdx === -1 || i < earliestIdx)) {
+        earliestIdx = i; earliestKey = k;
+      }
+    }
+    if (earliestIdx === -1) break;
+
+    const replacement = subs[earliestKey] || '(미응답)';
+    const before = out.slice(0, earliestIdx);
+    const after  = out.slice(earliestIdx + earliestKey.length);
+    const hasJong = hasJongsung(replacement.slice(-1));
+    out = before + replacement + particleAdjust(after, hasJong);
+  }
+  return out;
 }
 
 // v3 Section 15-2: D20 적응형 매칭
@@ -3621,7 +3806,8 @@ function resumePhase2() {
     if (!STATE.answers[order[i].id]) { resumeIdx = i; break; }
   }
   if (resumeIdx >= order.length) {
-    return showPhase2DPlaceholder();
+    // 모든 Phase 2 응답 완료 → 최신 종료 화면 (현재 빌드 기준 Part F 이후 placeholder)
+    return showPostPartFPlaceholder();
   }
   const q = order[resumeIdx];
   STATE.currentPart = q.part;
@@ -3643,7 +3829,7 @@ function renderCurrentQuestion() {
 
   let total, progressPct;
   if (STATE.currentPhase === 2) {
-    total = PHASE2_TOTAL_COUNT;
+    total = order.length; // 동적 (D 21 + F 12/11 + 향후 E 14)
     progressPct = 40 + (globalIdx / total) * 40; // Phase 2 = 40~80%
   } else {
     total = getPhase1TotalCount();
@@ -3667,7 +3853,8 @@ function renderQuestion(q, questionNum, totalNum) {
     'D_stage1': `Phase 2 · Part D · 1단계 (루트 ${STATE.route || ''})`,
     'D_mc2':    'Phase 2 · 잠시 멈춤',
     'D_stage2': `Phase 2 · Part D · 2단계 (루트 ${STATE.route || ''})`,
-    'D_stage3': `Phase 2 · Part D · 3단계 (루트 ${STATE.route || ''})`
+    'D_stage3': `Phase 2 · Part D · 3단계 (루트 ${STATE.route || ''})`,
+    'F':        'Phase 2 · Part F · 교차 검증'
   };
   const partMeta = partMetaMap[q.part] || (STATE.currentPhase === 2 ? 'Phase 2' : 'Phase 1');
 
@@ -3679,6 +3866,8 @@ function renderQuestion(q, questionNum, totalNum) {
     qtext = buildQ41Text();
   } else if (q.id === 'D1') {
     qtext = buildD1Text(STATE);
+  } else if (q.part === 'F') {
+    qtext = replacePlaceholders(q.text, STATE);
   }
 
   body += `
@@ -3950,6 +4139,17 @@ function goNext(currentQ) {
     if (STATE.currentPart === 'D_stage3') {
       return renderIBPostPartD();
     }
+    if (STATE.currentPart === 'F') {
+      // Part F 종료 → IB#5 (다음 빌드)
+      gaEvent('compass_part_complete', { phase: 2, part: 'F' });
+      save('compass_phase2', {
+        answers: STATE.answers,
+        route: STATE.route,
+        bTypeFlagged: STATE.bTypeFlagged,
+        partFCompletedAt: Date.now()
+      });
+      return showPostPartFPlaceholder();
+    }
   }
 }
 
@@ -3972,7 +4172,7 @@ function goPrev() {
     }
   }
   if (STATE.currentPhase === 2) {
-    const partOrder = ['D_common','D_stage1','D_mc2','D_stage2','D_stage3'];
+    const partOrder = ['D_common','D_stage1','D_mc2','D_stage2','D_stage3','F'];
     const curIdx = partOrder.indexOf(STATE.currentPart);
     if (curIdx > 0) {
       const prevPart = partOrder[curIdx - 1];
@@ -4572,7 +4772,7 @@ function renderIBPostPartD() {
     label: "Phase 2 · 인사이트 브레이크 1/3",
     title: "당신의 C형 목표가 모습을 드러내기 시작합니다",
     contentHtml: html,
-    ctaText: "Phase 2 완료 — 다음 단계로",
+    ctaText: "Part F로 — 검증 시작",
     onContinue: () => {
       gaEvent('compass_part_complete', { phase: 2, part: 'D' });
       save('compass_phase2', {
@@ -4581,30 +4781,34 @@ function renderIBPostPartD() {
         bTypeFlagged: STATE.bTypeFlagged,
         partDCompletedAt: Date.now()
       });
-      showPhase2DPlaceholder();
+      // Part F 진입
+      STATE.currentPart = 'F';
+      STATE.currentIndex = 0;
+      renderCurrentQuestion();
     }
   });
 }
 
-function showPhase2DPlaceholder() {
-  setProgress(60); // Part D 종료 = Phase 2의 약 절반
+/* Part F 종료 후 임시 화면 (IB#5는 6순위에서 구현) */
+function showPostPartFPlaceholder() {
+  setProgress(70);
   STATE.currentScreen = 'phase2Complete';
   const app = $('#app');
   const route = STATE.route;
   app.innerHTML = `
     <div class="complete">
       <div class="checkmark">✓</div>
-      <h1 style="font-size:24px;margin:0 0 12px;color:var(--navy);">Part D 완료</h1>
-      <p class="muted">루트 ${route} (${escapeHtml(ROUTE_NAMES[route] || '')}) 방향이 정리되었습니다.</p>
+      <h1 style="font-size:24px;margin:0 0 12px;color:var(--navy);">Part F 완료</h1>
+      <p class="muted">교차 검증 12문항이 모두 기록되었습니다 (루트 ${route}).</p>
 
       <div class="card" style="margin:24px 0;text-align:left;">
         <h3>다음에 할 것</h3>
         <ul>
-          <li>Part F (12문항) — Phase 1 데이터와 3겹 교차 검증</li>
+          <li>인사이트 브레이크 #5 — 일치도 미터 + 정렬/안심 메시지 (다음 빌드)</li>
           <li>Part E (14문항) — 간절함 + 정체성 + 최종 확정</li>
-          <li>두 파트 합쳐 약 25~30분 소요</li>
+          <li>인사이트 브레이크 #6 — Phase 2 완료 카드</li>
         </ul>
-        <p class="muted" style="margin-top:12px;">현재 Part F·E는 다음 빌드에서 제공됩니다. 진행 상태는 자동 저장됩니다.</p>
+        <p class="muted" style="margin-top:12px;">현재 IB#5·Part E·IB#6은 다음 빌드에서 제공됩니다. Part F 답변은 자동 저장되었습니다.</p>
       </div>
 
       <div class="actions" style="flex-direction:column;">
@@ -4618,6 +4822,7 @@ function showPhase2DPlaceholder() {
     if (confirm('처음 화면으로 돌아갑니다. 진행 데이터는 유지됩니다.')) renderIntro();
   });
 }
+
 
 /* ---------- 12. 부트스트랩 ---------- */
 document.addEventListener('DOMContentLoaded', () => {
