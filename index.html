@@ -400,6 +400,53 @@
     padding: 4px 10px; border-radius: 6px; margin-bottom: 8px;
   }
 
+  /* IB#5 일치도 미터 */
+  .consistency-meter {
+    background: var(--white); border-radius: 14px;
+    padding: 18px 18px 16px; margin-bottom: 16px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 12px rgba(27,42,74,.06);
+  }
+  .consistency-meter .meter-track {
+    background: var(--border);
+    height: 12px; border-radius: 999px;
+    overflow: hidden; margin-bottom: 12px;
+    position: relative;
+  }
+  .consistency-meter .meter-fill {
+    background: var(--gradient-premium);
+    height: 100%; border-radius: 999px;
+    transition: width .9s cubic-bezier(.22,1,.36,1);
+    box-shadow: 0 1px 4px rgba(26,143,106,.35);
+  }
+  .consistency-meter .meter-meta {
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .consistency-meter .meter-label {
+    font-size: 12px; color: var(--text-secondary);
+    font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .consistency-meter .meter-value {
+    font-size: 26px; font-weight: 800; color: var(--navy);
+    font-family: 'DM Mono', 'Pretendard Variable', monospace;
+    letter-spacing: -0.02em;
+  }
+  .consistency-meter .meter-thresh-mark {
+    position: absolute; top: -2px; bottom: -2px;
+    left: 70%; width: 2px;
+    background: var(--text-muted); opacity: 0.55;
+  }
+
+  /* 추가 탐색 안내 (extra_explore ≥ 2) */
+  .extra-explore-note {
+    background: #FEF3C7; color: #92400E;
+    padding: 14px 16px; border-radius: 12px;
+    font-size: 14px; line-height: 1.5; font-weight: 500;
+    border-left: 3px solid #F59E0B;
+    margin-top: 16px;
+  }
+  .extra-explore-note strong { color: #78350F; font-weight: 700; }
+
   /* Phase 1 complete */
   .complete {
     text-align: center; padding: 48px 16px;
@@ -3641,6 +3688,87 @@ function getMC2Followup(answers) {
   return MC2_FOLLOWUPS[v] || null;
 }
 
+/* ---------- Phase 2 IB#5: 일치도 계산 + extra_explore 카운트 ---------- */
+
+// F1~F12 응답 → 0.0~1.0 일치도 점수
+function calculateConsistency(answers, axes) {
+  const scores = [];
+  const items = [];
+
+  // F1·F2·F3·F4·F5·F6·F7·F12: 정적 tags.consistency
+  ['F1','F2','F3','F4','F5','F6','F7','F12'].forEach(id => {
+    const c = answers[id]?.tags?.consistency;
+    if (typeof c === 'number') {
+      scores.push(c);
+      items.push({ id, score: c, type: 'static' });
+    }
+  });
+
+  // F8: F7=B 일 때만 점수 포함 (조건부 — F7=A면 F8 미응답이므로 자동 스킵)
+  if (answers.F7?.value === 'B') {
+    const c = answers.F8?.tags?.consistency;
+    if (typeof c === 'number') {
+      scores.push(c);
+      items.push({ id: 'F8', score: c, type: 'static-conditional' });
+    }
+  }
+
+  // F9: axis2 동적 비교 (≤3.0 → A 정답, >3.0 → B 정답)
+  if (answers.F9 && axes && typeof axes.axis2 === 'number') {
+    const expected = answers.F9.tags?.expectedSide; // 'low' or 'high'
+    const actual   = axes.axis2 <= 3.0 ? 'low' : 'high';
+    const s = expected === actual ? 1.0 : 0.0;
+    scores.push(s);
+    items.push({ id: 'F9', score: s, type: 'axis2-cross', expected, actual, axisVal: axes.axis2 });
+  }
+
+  // F10: axis4 동적 비교
+  if (answers.F10 && axes && typeof axes.axis4 === 'number') {
+    const expected = answers.F10.tags?.expectedSide;
+    const actual   = axes.axis4 <= 3.0 ? 'low' : 'high';
+    const s = expected === actual ? 1.0 : 0.0;
+    scores.push(s);
+    items.push({ id: 'F10', score: s, type: 'axis4-cross', expected, actual, axisVal: axes.axis4 });
+  }
+
+  // F11: 슬라이더 거리 (Q20+Q28 평균과 비교)
+  if (typeof answers.F11?.sliderValue === 'number') {
+    const f11 = answers.F11.sliderValue;
+    const q20 = answers.Q20?.value === 'A' ? 1 : (answers.Q20?.value === 'B' ? 5 : 3);
+    const q28 = answers.Q28?.value === 'A' ? 1 : (answers.Q28?.value === 'B' ? 5 : 3);
+    const ref = (q20 + q28) / 2;
+    const dist = Math.abs(f11 - ref);
+    let s;
+    if (dist <= 1) s = 1.0;
+    else if (dist <= 2) s = 0.66;
+    else if (dist <= 3) s = 0.33;
+    else s = 0.0;
+    scores.push(s);
+    items.push({ id: 'F11', score: s, type: 'slider-distance', f11, ref, dist });
+  }
+
+  if (scores.length === 0) {
+    return { score: 0, percentage: 0, total: 0, items: [] };
+  }
+  const avg = scores.reduce((a,b)=>a+b, 0) / scores.length;
+  return {
+    score: avg,
+    percentage: Math.round(avg * 100),
+    total: scores.length,
+    items
+  };
+}
+
+// extra_explore 플래그 카운트 (F1·F2·F3·F5·F8·F12에서 답한 옵션이 extra_explore 표시인지)
+function countExtraExplore(answers) {
+  const candidates = ['F1','F2','F3','F5','F8','F12'];
+  let count = 0;
+  candidates.forEach(id => {
+    if (answers[id]?.tags?.extra_explore) count++;
+  });
+  return count;
+}
+
 // stage1 1단계 분기 결과를 자연어로 (D6/D7/D8 답변 텍스트)
 function getStage1Summary(answers, route) {
   const items = [];
@@ -3806,8 +3934,8 @@ function resumePhase2() {
     if (!STATE.answers[order[i].id]) { resumeIdx = i; break; }
   }
   if (resumeIdx >= order.length) {
-    // 모든 Phase 2 응답 완료 → 최신 종료 화면 (현재 빌드 기준 Part F 이후 placeholder)
-    return showPostPartFPlaceholder();
+    // 모든 Phase 2 응답 완료 → IB#5 자동 표시 후 Part E 진입 placeholder
+    return renderIBPostPartF();
   }
   const q = order[resumeIdx];
   STATE.currentPart = q.part;
@@ -4140,15 +4268,9 @@ function goNext(currentQ) {
       return renderIBPostPartD();
     }
     if (STATE.currentPart === 'F') {
-      // Part F 종료 → IB#5 (다음 빌드)
-      gaEvent('compass_part_complete', { phase: 2, part: 'F' });
-      save('compass_phase2', {
-        answers: STATE.answers,
-        route: STATE.route,
-        bTypeFlagged: STATE.bTypeFlagged,
-        partFCompletedAt: Date.now()
-      });
-      return showPostPartFPlaceholder();
+      // Part F 종료 → IB#5 (일치도 미터 + 정렬/안심 메시지)
+      // 저장은 IB#5 onContinue에서 (consistency 계산 결과 포함)
+      return renderIBPostPartF();
     }
   }
 }
@@ -4792,35 +4914,113 @@ function renderIBPostPartD() {
   });
 }
 
-/* Part F 종료 후 임시 화면 (IB#5는 6순위에서 구현) */
-function showPostPartFPlaceholder() {
-  setProgress(70);
+/* IB#5 — Part F 종료 후 일치도 미터 + 정렬/안심 메시지 (Phase 2 · 2/3) */
+function renderIBPostPartF() {
+  const cons = calculateConsistency(STATE.answers, STATE.axes);
+  const extra = countExtraExplore(STATE.answers);
+  const aligned = cons.score >= 0.7;
+
+  // 제목 (정렬/불일치에 따라 분기)
+  const title = aligned
+    ? "당신의 답들이 한 방향을 가리킵니다"
+    : "균열이 보이는 것은 진짜 자기를 발견하는 신호입니다";
+
+  // 임계 70% 분기 메시지 (Wiggins 성장 유도형 피드백)
+  const thresholdMsg = aligned
+    ? "당신의 행동 패턴과 목표가 정렬되어 있습니다. 이 방향으로 계속 진행하셔도 좋습니다."
+    : "일부 영역에서 차이가 보였습니다 — 이것은 문제가 아닙니다. 오히려 진짜 자기를 발견하는 신호일 수 있습니다. 다음 Part E에서 진정한 갈망을 함께 확인하겠습니다.";
+
+  // extra_explore ≥ 2 보조 메시지
+  const extraMsgHtml = extra >= 2
+    ? `<div class="extra-explore-note">
+         일부 답변에서 더 깊이 살펴볼 신호가 보입니다 (<strong>${extra}개 영역</strong>).
+         <strong>Part E</strong>에서 더 깊이 탐색하겠습니다.
+       </div>`
+    : '';
+
+  const html = `
+    <div class="consistency-meter">
+      <div class="meter-track">
+        <span class="meter-thresh-mark" title="기준선 70%"></span>
+        <div class="meter-fill" id="meter-fill-bar" style="width:0%;"></div>
+      </div>
+      <div class="meter-meta">
+        <span class="meter-label">일치도</span>
+        <span class="meter-value">${cons.percentage}<span style="font-size:14px;color:var(--text-muted);font-weight:600;">%</span></span>
+      </div>
+    </div>
+    <p class="ib-body" style="margin-top:18px;">${escapeHtml(thresholdMsg)}</p>
+    ${extraMsgHtml}
+    <p class="ib-body" style="margin-top:8px;font-size:13px;color:var(--text-muted);">
+      검증 항목 ${cons.total}개 평균 · 70%가 정렬 기준선입니다.
+    </p>
+  `;
+
+  renderInsightBreakShell({
+    number: 5,
+    label: "Phase 2 · 인사이트 브레이크 2/3",
+    title: title,
+    contentHtml: html,
+    ctaText: "Part E로 — 마지막 단계",
+    onContinue: () => {
+      gaEvent('compass_part_complete', {
+        phase: 2, part: 'F',
+        consistency: cons.percentage,
+        aligned: aligned ? 1 : 0,
+        extra_explore: extra
+      });
+      save('compass_phase2', {
+        answers: STATE.answers,
+        route: STATE.route,
+        bTypeFlagged: STATE.bTypeFlagged,
+        consistency: cons,
+        extraExplore: extra,
+        partFCompletedAt: Date.now()
+      });
+      showPreParteIntro();
+    }
+  });
+
+  // 미터 바 애니메이션 (오버레이 mount 후 채워지는 효과)
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      const bar = document.getElementById('meter-fill-bar');
+      if (bar) bar.style.width = cons.percentage + '%';
+    }, 200);
+  });
+}
+
+/* Part E 진입 직전 임시 화면 (Part E·IB#6는 7·8순위에서 구현) */
+function showPreParteIntro() {
+  setProgress(75);
   STATE.currentScreen = 'phase2Complete';
   const app = $('#app');
-  const route = STATE.route;
+  const cons = calculateConsistency(STATE.answers, STATE.axes);
+  const extra = countExtraExplore(STATE.answers);
   app.innerHTML = `
     <div class="complete">
       <div class="checkmark">✓</div>
-      <h1 style="font-size:24px;margin:0 0 12px;color:var(--navy);">Part F 완료</h1>
-      <p class="muted">교차 검증 12문항이 모두 기록되었습니다 (루트 ${route}).</p>
+      <h1 style="font-size:24px;margin:0 0 12px;color:var(--navy);">Part F 검증 완료</h1>
+      <p class="muted">교차 검증과 일치도 측정이 끝났습니다 (일치도 ${cons.percentage}%${extra >= 2 ? ` · 추가 탐색 ${extra}개 영역` : ''}).</p>
 
       <div class="card" style="margin:24px 0;text-align:left;">
-        <h3>다음에 할 것</h3>
+        <h3>다음에 할 것 — Part E</h3>
         <ul>
-          <li>인사이트 브레이크 #5 — 일치도 미터 + 정렬/안심 메시지 (다음 빌드)</li>
-          <li>Part E (14문항) — 간절함 + 정체성 + 최종 확정</li>
-          <li>인사이트 브레이크 #6 — Phase 2 완료 카드</li>
+          <li>간절함 8문항 — 감정/실용 교차 측정</li>
+          <li>정체성 3문항 — "이것을 이루면 나는 어떤 사람이 되는가"</li>
+          <li>메타 1문항 + 최종 확정 2문항 (E13·E14 적응형)</li>
+          <li>약 10~12분 소요</li>
         </ul>
-        <p class="muted" style="margin-top:12px;">현재 IB#5·Part E·IB#6은 다음 빌드에서 제공됩니다. Part F 답변은 자동 저장되었습니다.</p>
+        <p class="muted" style="margin-top:12px;">현재 Part E·IB#6은 다음 빌드에서 제공됩니다. Part F 답변과 일치도는 자동 저장되었습니다.</p>
       </div>
 
       <div class="actions" style="flex-direction:column;">
-        <button class="btn btn-secondary" id="review-ibd">Part D 요약 다시 보기</button>
+        <button class="btn btn-secondary" id="review-ib5">Part F 일치도 다시 보기</button>
         <button class="btn btn-ghost" id="back-phase1" style="margin-top:8px;">처음 화면으로</button>
       </div>
     </div>
   `;
-  $('#review-ibd').addEventListener('click', renderIBPostPartD);
+  $('#review-ib5').addEventListener('click', renderIBPostPartF);
   $('#back-phase1').addEventListener('click', () => {
     if (confirm('처음 화면으로 돌아갑니다. 진행 데이터는 유지됩니다.')) renderIntro();
   });
