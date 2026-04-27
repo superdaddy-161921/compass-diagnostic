@@ -583,6 +583,35 @@ const MC2_FOLLOWUPS = {
   D: "복잡함은 진짜에 다가가고 있다는 신호일 수 있습니다. 결을 정리해보겠습니다."
 };
 
+// 영역 → 자연 루트 매핑 (BRIDGE 4루트 분류 기준 — E13 (B) 후보 추출용)
+const AREA_TO_ROUTE = {
+  health:       'A',  // 자기 + 외적 (몸 변화)
+  finance:      'C',  // 환경 + 외적 (재정 환경)
+  growth:       'B',  // 자기 + 내면 (역량 깊이)
+  relationship: 'D',  // 환경 + 내면 (관계 질적 전환)
+  contribution: 'C',  // 환경 + 외적 (영향력 = 외부 환경)
+  lifestyle:    'D'   // 환경 + 내면 (삶의 방식)
+};
+
+// IB#6 간절함 점수 레벨별 제목·메시지
+const PASSION_TITLES = {
+  high:      "당신의 C형 목표가 모습을 갖췄습니다",
+  growing:   "방향은 잡혔습니다 — 100일 동안 간절함이 자라날 겁니다",
+  exploring: "지금은 흐릿한 게 자연스럽습니다"
+};
+const PASSION_MESSAGES = {
+  high:      "이 방향은 당신의 진짜 갈망에서 나온 것 같습니다. 100일을 시작할 준비가 충분히 되어 있습니다.",
+  growing:   "확신이 절반쯤 자리잡았습니다. 100일을 거치며 행동이 그 확신을 더 단단하게 만들어갈 겁니다.",
+  exploring: "지금 흐릿한 것은 솔직한 자기 인식이고, 그 자체가 출발점입니다. 100일이 끝날 무렵 다시 답해도 좋습니다."
+};
+// E12 메타 응답별 보조 메시지 (IB#6용)
+const E12_FOLLOWUPS = {
+  clearer:           "원하는 것이 점점 또렷해지고 있다는 신호입니다.",
+  less_passionate:   "솔직한 자기 인식입니다. 진짜 갈망을 다시 찾는 시작점이 됩니다.",
+  alt_consideration: "다른 가능성에 마음이 열려 있다는 뜻입니다 — OT에서 더 살펴봅니다.",
+  unclear:           "흐릿함이 자연스럽습니다. Phase 3에서 행동으로 답을 찾아갑니다."
+};
+
 /* ---------- 1. 질문 데이터 ---------- */
 const QUESTIONS = {
   phase1: {
@@ -1151,6 +1180,134 @@ const QUESTIONS = {
           { label: "(C) 약간 흔들린다",                value: "C", tags: { consistency: 0.33 } },
           { label: "(D) 다른 것이 더 맞는 것 같다",     value: "D", tags: { consistency: 0.0, extra_explore: true } }
         ]
+      }
+    ],
+
+    /* Part E — 14문항 간절함 + 정체성 + 최종 확정 */
+    partE: [
+      // ====== 간절함 검증 (E1~E8, 감정/실용 교차) ======
+      { id: "E1", type: "single", part: "E",
+        text: "이 목표를 이미 이뤘다고 상상해보세요. 어떤 감정이 드나요?",
+        options: [
+          { label: "(A) 심장이 뛰고 눈물이 날 것 같다", value: "A", tags: { passion: 1.0 } },
+          { label: "(B) 뿌듯하고 만족스럽다",            value: "B", tags: { passion: 0.66 } },
+          { label: "(C) 안도감이 든다",                  value: "C", tags: { passion: 0.33 } },
+          { label: "(D) 크게 와닿지 않는다",             value: "D", tags: { passion: 0.0, extra_explore: true } }
+        ]
+      },
+      { id: "E2", type: "single", part: "E",
+        text: "이 목표를 위해 매일 2시간을 투자해야 한다면?",
+        options: [
+          { label: "(A) 기꺼이 한다 — 이미 하고 있거나 할 준비가 됐다", value: "A", tags: { passion: 1.0 } },
+          { label: "(B) 힘들겠지만 하겠다",                              value: "B", tags: { passion: 0.66 } },
+          { label: "(C) 매일은 어렵고 주 3~4회 가능",                   value: "C", tags: { passion: 0.33 } },
+          { label: "(D) 현실적으로 어렵다",                              value: "D", tags: { passion: 0.0 } }
+        ]
+      },
+      { id: "E3", type: "single", part: "E",
+        text: "이 목표를 절대 이룰 수 없다고 선고받았다면?",
+        options: [
+          { label: "(A) 절대 받아들일 수 없다 — 다른 방법을 찾겠다", value: "A", tags: { passion: 1.0 } },
+          { label: "(B) 매우 속상하지만 다른 목표를 찾겠다",         value: "B", tags: { passion: 0.66 } },
+          { label: "(C) 아쉽지만 어쩔 수 없다",                       value: "C", tags: { passion: 0.33 } },
+          { label: "(D) 솔직히 큰 타격은 아니다",                     value: "D", tags: { passion: 0.0, extra_explore: true } }
+        ]
+      },
+      { id: "E4", type: "single", part: "E",
+        text: "이 목표를 향해 가는 과정 자체가 즐거울 것 같나요?",
+        options: [
+          { label: "(A) 과정 자체가 기대된다",            value: "A", tags: { passion: 1.0 } },
+          { label: "(B) 힘들겠지만 결과를 위해 견디겠다", value: "B", tags: { passion: 0.66 } },
+          { label: "(C) 과정보다 결과가 중요하다",        value: "C", tags: { passion: 0.33 } },
+          { label: "(D) 잘 모르겠다",                     value: "D", tags: { passion: 0.0 } }
+        ]
+      },
+      { id: "E5", type: "single", part: "E",
+        text: "모든 사람이 '그건 불가능하다'고 말한다면?",
+        options: [
+          { label: "(A) 오히려 더 하고 싶어진다",  value: "A", tags: { passion: 1.0 } },
+          { label: "(B) 흔들리지만 계속하겠다",    value: "B", tags: { passion: 0.66 } },
+          { label: "(C) 심각하게 재고하겠다",      value: "C", tags: { passion: 0.33 } },
+          { label: "(D) 아마 포기할 것이다",        value: "D", tags: { passion: 0.0, extra_explore: true } }
+        ]
+      },
+      { id: "E6", type: "single", part: "E",
+        text: "만약 이 목표를 3년 전에 시작했다면, 지금 당신은 어떤 기분일까요?",
+        options: [
+          { label: "(A) 너무 후회된다 — 왜 안 했을까",        value: "A", tags: { passion: 1.0 } },
+          { label: "(B) 아쉽지만 지금이라도 시작하면 된다",   value: "B", tags: { passion: 0.66 } },
+          { label: "(C) 그때는 준비가 안 됐으니 괜찮다",      value: "C", tags: { passion: 0.33 } },
+          { label: "(D) 크게 달라지지 않았을 것 같다",        value: "D", tags: { passion: 0.0 } }
+        ]
+      },
+      { id: "E7", type: "single", part: "E",
+        text: "이 목표를 향해 가는 도중에 안정적인 기회(좋은 직장, 안전한 투자처 등)가 생겼습니다.",
+        options: [
+          { label: "(A) 안정적 기회를 활용하면서 목표도 병행한다",     value: "A", tags: { passion: 1.0 } },
+          { label: "(B) 안정적 기회를 잡고, 목표는 잠시 보류한다",      value: "B", tags: { passion: 0.0 } },
+          { label: "(C) 안정적 기회를 포기하고 목표에 올인한다",        value: "C", tags: { passion: 1.0 } },
+          { label: "(D) 그때 가서 판단한다",                            value: "D", tags: { passion: 0.5 } }
+        ]
+      },
+      { id: "E8", type: "single", part: "E",
+        text: "지금 이 순간 가장 솔직한 마음은?",
+        options: [
+          { label: "(A) 반드시 해내겠다는 불꽃이 있다",   value: "A", tags: { passion: 1.0 } },
+          { label: "(B) 하고 싶지만 할 수 있을지 불안하다", value: "B", tags: { passion: 0.66 } },
+          { label: "(C) 해보고 싶은 마음은 있다",          value: "C", tags: { passion: 0.33 } },
+          { label: "(D) 아직 확신이 서지 않는다",          value: "D", tags: { passion: 0.0, extra_explore: true } }
+        ]
+      },
+
+      // ====== 정체성 연결 (E9~E11) ======
+      { id: "E9", type: "single", part: "E",
+        text: "이 목표를 이루면 나는 어떤 사람이 되나요?",
+        options: [
+          { label: "(A) 건강하고 에너지 넘치는 사람",                value: "A", tags: { identity_area: "health" } },
+          { label: "(B) 경제적으로 자유로운 사람",                   value: "B", tags: { identity_area: "finance" } },
+          { label: "(C) 자기 분야에서 전문성을 인정받는 사람",       value: "C", tags: { identity_area: "growth" } },
+          { label: "(D) 가족에게 자랑스러운 사람",                   value: "D", tags: { identity_area: "relationship" } },
+          { label: "(E) 세상에 가치를 주는 존재",                    value: "E", tags: { identity_area: "contribution" } }
+        ]
+      },
+      { id: "E10", type: "single", part: "E",
+        text: "그 사람이 된 나를 상상할 때, 지금의 나와 가장 크게 다른 점은?",
+        options: [
+          { label: "(A) 아침에 눈을 뜨는 기분이 다르다",     value: "A", tags: { identity_scene: "morning" } },
+          { label: "(B) 거울을 볼 때의 느낌이 다르다",        value: "B", tags: { identity_scene: "mirror" } },
+          { label: "(C) 사람들 앞에서의 자신감이 다르다",     value: "C", tags: { identity_scene: "social" } },
+          { label: "(D) 하루를 보내는 방식이 다르다",         value: "D", tags: { identity_scene: "daily" } }
+        ]
+      },
+      { id: "E11", type: "forced", part: "E",
+        text: "어느 쪽이 당신에게 더 중요한가요?",
+        options: [
+          { label: "(A) 그 사람이 되는 것 (존재의 변화)",      value: "A", tags: { passion: 1.0, identity_focus: "being" } },
+          { label: "(B) 그 목표를 달성하는 것 (결과의 획득)", value: "B", tags: { passion: 0.5, identity_focus: "achieving" } }
+        ]
+      },
+
+      // ====== 메타 인식 (E12 — 점수 미반영) ======
+      { id: "E12", type: "single", part: "E", meta: true,
+        text: "Phase 1부터 지금까지 질문에 답하면서, 새롭게 느끼거나 발견한 것이 있나요?",
+        options: [
+          { label: "(A) 내가 정말 원하는 것이 더 명확해졌다",                value: "A", tags: { meta_state: "clearer" } },
+          { label: "(B) 생각보다 간절하지 않다는 걸 깨달았다",               value: "B", tags: { meta_state: "less_passionate", extra_explore: true } },
+          { label: "(C) 다른 것이 더 원하는 것일 수도 있다는 생각이 든다",   value: "C", tags: { meta_state: "alt_consideration", extra_explore: true } },
+          { label: "(D) 아직 잘 모르겠다",                                   value: "D", tags: { meta_state: "unclear", extra_explore: true } }
+        ]
+      },
+
+      // ====== 최종 C형 목표 선택 (E13~E14, 적응형) ======
+      { id: "E13", type: "single_adaptive", part: "E",
+        adaptive: { source: "alt_goals" },
+        text: "만약 이 목표가 아닌 다른 것이 당신의 진짜 갈망이라면, 그건 무엇일 수 있을까요?"
+        // 옵션은 renderE13AdaptiveOptions에서 동적 생성
+      },
+      { id: "E14", type: "single_adaptive", part: "E",
+        adaptive: { source: "final_goal" },
+        text: "지금까지의 모든 과정을 거쳐, 당신이 가장 간절히 원하는 C형 목표는?"
+        // 옵션은 renderE14AdaptiveOptions에서 동적 생성 (4지/5지 분기)
       }
     ]
   }
@@ -3457,6 +3614,11 @@ function buildPhase2Order(answers, route) {
     }
   });
 
+  // Part E (14문항)
+  (QUESTIONS.phase2.partE || []).forEach(q => {
+    order.push({ ...q, part: "E" });
+  });
+
   return order;
 }
 
@@ -3769,6 +3931,141 @@ function countExtraExplore(answers) {
   return count;
 }
 
+/* ---------- Phase 2 Part E 헬퍼 ---------- */
+
+// E13 적응형 후보 (A=같은 루트 다른 combo, B=Q10 hidden_area / axis8 2위 → 다른 루트)
+function getE13Alternatives(state) {
+  const route = state.route;
+  if (!route || typeof GOAL_POOL === 'undefined') return { altA: null, altB: null };
+  const ans = state.answers;
+  const userCombo = `${ans[`D6-${route}`]?.value}-${ans[`D7-${route}`]?.value}-${ans[`D8-${route}`]?.value}`;
+  const d11 = ans[`D11-${route}`]?.sliderValue ?? 3;
+  const d15 = ans[`D15-${route}`]?.sliderValue ?? 3;
+  const preferH = (d11 + d15) >= 7;
+
+  const sortByIntensity = (a, b) => {
+    const aPref = (preferH ? a.intensity === 'H' : a.intensity === 'M') ? 0 : 1;
+    const bPref = (preferH ? b.intensity === 'H' : b.intensity === 'M') ? 0 : 1;
+    return aPref - bPref;
+  };
+
+  // (A) 같은 루트, 다른 attribute_combo (범용 제외)
+  const sameRoute = GOAL_POOL.goals.filter(g =>
+    g.route === route &&
+    g.attribute_combo !== userCombo &&
+    g.attribute_combo !== '범용'
+  );
+  sameRoute.sort(sortByIntensity);
+  const altA = sameRoute[0] || null;
+
+  // (B) Q10-1 hidden_area → 다른 루트 / 폴백: axis8 2위 영역 / 폴백: sameRoute[1]
+  const hiddenArea = ans['Q10-1']?.tags?.hidden_area;
+  let altRoute = null;
+  if (hiddenArea && hiddenArea !== 'unknown' && AREA_TO_ROUTE[hiddenArea]) {
+    altRoute = AREA_TO_ROUTE[hiddenArea];
+  } else {
+    const counts = calculateAreaCounts(ans, ['Q1','Q2','Q3','Q4','Q5','Q6','Q7','QB1','QB2','QB3','QB4','QB5']);
+    const sorted = Object.entries(counts).sort((a,b)=> b[1]-a[1]);
+    const secondArea = sorted[1]?.[0];
+    if (secondArea && AREA_TO_ROUTE[secondArea]) altRoute = AREA_TO_ROUTE[secondArea];
+  }
+
+  let altB = null;
+  if (altRoute && altRoute !== route) {
+    const otherRoute = GOAL_POOL.goals.filter(g =>
+      g.route === altRoute && g.attribute_combo !== '범용'
+    );
+    otherRoute.sort(sortByIntensity);
+    altB = otherRoute[0] || null;
+  }
+  if (!altB || (altA && altB.id === altA.id)) altB = sameRoute[1] || null;
+
+  return { altA, altB };
+}
+
+// E14 옵션 구성 상태 (leadingGoal + 선택지 개수 결정)
+function getE14State(state) {
+  const route = state.route;
+  const ans = state.answers;
+  const d20Ans = ans[`D20-${route}`];
+  const e13 = ans.E13;
+
+  // D20 goal
+  const d20Goal = d20Ans?.tags?.goal_id
+    ? GOAL_POOL.goals.find(g => g.id === d20Ans.tags.goal_id)
+    : null;
+
+  // E13 결과 분기 — Option (A) 라벨 결정
+  let optionA_goal, optionA_source;
+  if (e13?.value === 'A') {
+    const alts = getE13Alternatives(state);
+    optionA_goal = alts.altA;
+    optionA_source = 'E13_alt';
+  } else if (e13?.value === 'B') {
+    const alts = getE13Alternatives(state);
+    optionA_goal = alts.altB;
+    optionA_source = 'E13_alt';
+  } else {
+    optionA_goal = d20Goal;
+    optionA_source = 'D20';
+  }
+
+  // Option (B): E13=D일 때만 altA 추가 (5지선다 모드)
+  let optionB_goal = null;
+  if (e13?.value === 'D') {
+    const alts = getE13Alternatives(state);
+    optionB_goal = alts.altA;
+  }
+
+  return {
+    optionA_goal, optionA_source,
+    optionB_goal,
+    leadingGoal: optionA_goal,    // confidence 옵션이 가리키는 기본 goal
+    leadingSource: optionA_source
+  };
+}
+
+// 간절함 점수 (E1~E8, E11 — 9문항 평균, 0~1)
+function calculatePassionScore(answers) {
+  const ids = ['E1','E2','E3','E4','E5','E6','E7','E8','E11'];
+  const scores = ids
+    .map(id => answers[id]?.tags?.passion)
+    .filter(v => typeof v === 'number');
+  if (!scores.length) return { score: 0, percentage: 0, total: 0, level: 'unknown' };
+  const avg = scores.reduce((a,b)=>a+b, 0) / scores.length;
+  let level;
+  if (avg >= 0.8)      level = 'high';
+  else if (avg >= 0.6) level = 'growing';
+  else                  level = 'exploring';
+  return { score: avg, percentage: Math.round(avg * 100), total: scores.length, level };
+}
+
+// Part E extra_explore 카운트 (E1·E3·E5·E8·E12·E13)
+function countExtraExplorePartE(answers) {
+  const candidates = ['E1','E3','E5','E8','E12','E13'];
+  let count = 0;
+  candidates.forEach(id => {
+    if (answers[id]?.tags?.extra_explore) count++;
+  });
+  return count;
+}
+
+// E14 응답에서 최종 C형 목표 메타 추출
+function extractFinalGoal(answers) {
+  const e14 = answers.E14;
+  if (!e14?.tags) return { goalId: null, source: 'undecided', confidence: 'unsure', statement: null, beingForm: null, category: null };
+  const goalId = e14.tags.goal_id || null;
+  const goal = goalId ? GOAL_POOL.goals.find(g => g.id === goalId) : null;
+  return {
+    goalId,
+    source: e14.tags.source || 'undecided',
+    confidence: e14.tags.confidence || 'unsure',
+    statement: goal?.achievement_form || null,
+    beingForm: goal?.existence_form || null,
+    category: goal?.category || null
+  };
+}
+
 // stage1 1단계 분기 결과를 자연어로 (D6/D7/D8 답변 텍스트)
 function getStage1Summary(answers, route) {
   const items = [];
@@ -3934,8 +4231,8 @@ function resumePhase2() {
     if (!STATE.answers[order[i].id]) { resumeIdx = i; break; }
   }
   if (resumeIdx >= order.length) {
-    // 모든 Phase 2 응답 완료 → IB#5 자동 표시 후 Part E 진입 placeholder
-    return renderIBPostPartF();
+    // 모든 Phase 2 응답 완료 → IB#6 자동 표시 (Phase 2 최종)
+    return renderIBPostPartE();
   }
   const q = order[resumeIdx];
   STATE.currentPart = q.part;
@@ -3982,7 +4279,8 @@ function renderQuestion(q, questionNum, totalNum) {
     'D_mc2':    'Phase 2 · 잠시 멈춤',
     'D_stage2': `Phase 2 · Part D · 2단계 (루트 ${STATE.route || ''})`,
     'D_stage3': `Phase 2 · Part D · 3단계 (루트 ${STATE.route || ''})`,
-    'F':        'Phase 2 · Part F · 교차 검증'
+    'F':        'Phase 2 · Part F · 교차 검증',
+    'E':        'Phase 2 · Part E · 간절함과 정체성'
   };
   const partMeta = partMetaMap[q.part] || (STATE.currentPhase === 2 ? 'Phase 2' : 'Phase 1');
 
@@ -4012,7 +4310,9 @@ function renderQuestion(q, questionNum, totalNum) {
   } else if (q.type === 'tournament') {
     body += renderTournamentOptions(q);
   } else if (q.type === 'single_adaptive') {
-    body += renderD20AdaptiveOptions(q);
+    if (q.id === 'E13') body += renderE13AdaptiveOptions(q);
+    else if (q.id === 'E14') body += renderE14AdaptiveOptions(q);
+    else body += renderD20AdaptiveOptions(q); // D20-A/B/C/D
   }
 
   body += '</div>';
@@ -4137,6 +4437,72 @@ function renderD20AdaptiveOptions(q) {
   const all = dynamicOptions.concat(fallbackOptions);
   q._dynamicOptions = all;
   return renderOptions(all, q.id);
+}
+
+// E13 적응형 옵션 렌더 (5지선다 — A·B 동적 + C·D·E 정적)
+function renderE13AdaptiveOptions(q) {
+  const { altA, altB } = getE13Alternatives(STATE);
+  const labelA = altA ? altA.achievement_form : '같은 루트의 다른 형태 (후보 부족)';
+  const labelB = altB ? altB.achievement_form : '다른 영역의 후보 (후보 부족)';
+
+  const opts = [
+    { label: `(A) ${labelA}`, value: "A",
+      tags: { e13_choice: "altA", goal_id: altA?.id || null } },
+    { label: `(B) ${labelB}`, value: "B",
+      tags: { e13_choice: "altB", goal_id: altB?.id || null } },
+    { label: "(C) 대안이 끌리지만 원래 목표가 더 간절하다", value: "C",
+      tags: { e13_choice: "stick" } },
+    { label: "(D) 대안이 더 끌린다 — 이것으로 바꾸고 싶다", value: "D",
+      tags: { e13_choice: "switch", extra_explore: true } },
+    { label: "(E) 둘 다 중요하다 — 하나를 고를 수 없다",      value: "E",
+      tags: { e13_choice: "both", extra_explore: true } }
+  ];
+  q._dynamicOptions = opts;
+  return renderOptions(opts, q.id);
+}
+
+// E14 적응형 옵션 렌더 (4지/5지 — E13 결과에 따라 (B) 동적 추가)
+function renderE14AdaptiveOptions(q) {
+  const s = getE14State(STATE);
+  const labelA = s.optionA_goal?.achievement_form || '아직 정해지지 않음 (OT에서 함께 정함)';
+  const goalAId = s.optionA_goal?.id || null;
+
+  const opts = [
+    { label: `(A) ${labelA}`, value: "A",
+      tags: { goal_id: goalAId, source: s.optionA_source, confidence: 'committed' } }
+  ];
+
+  // (B) — E13=D 일 때만 추가
+  let nextLetter = 'B';
+  if (s.optionB_goal) {
+    opts.push({
+      label: `(B) ${s.optionB_goal.achievement_form}`, value: "B",
+      tags: { goal_id: s.optionB_goal.id, source: 'E13_alt', confidence: 'committed' }
+    });
+    nextLetter = 'C';
+  }
+
+  // 신뢰도 옵션 (leadingGoal 기준 — 5지의 C/D/E 또는 4지의 B/C/D)
+  const codes = [
+    nextLetter,
+    String.fromCharCode(nextLetter.charCodeAt(0) + 1),
+    String.fromCharCode(nextLetter.charCodeAt(0) + 2)
+  ];
+  opts.push({
+    label: `(${codes[0]}) 이것이다 — 확신한다`, value: codes[0],
+    tags: { goal_id: s.leadingGoal?.id || null, source: s.leadingSource, confidence: 'strong' }
+  });
+  opts.push({
+    label: `(${codes[1]}) 이것 같다 — 거의 확신한다`, value: codes[1],
+    tags: { goal_id: s.leadingGoal?.id || null, source: s.leadingSource, confidence: 'moderate' }
+  });
+  opts.push({
+    label: `(${codes[2]}) 아직 모르겠다 — OT에서 함께 찾고 싶다`, value: codes[2],
+    tags: { goal_id: null, source: 'undecided', confidence: 'unsure', extra_explore: true }
+  });
+
+  q._dynamicOptions = opts;
+  return renderOptions(opts, q.id);
 }
 
 function restoreAnswer(q) {
@@ -4269,8 +4635,11 @@ function goNext(currentQ) {
     }
     if (STATE.currentPart === 'F') {
       // Part F 종료 → IB#5 (일치도 미터 + 정렬/안심 메시지)
-      // 저장은 IB#5 onContinue에서 (consistency 계산 결과 포함)
       return renderIBPostPartF();
+    }
+    if (STATE.currentPart === 'E') {
+      // Part E 종료 → IB#6 (간절함 미터 + 최종 C형 목표 + Phase 3 안내)
+      return renderIBPostPartE();
     }
   }
 }
@@ -4294,7 +4663,7 @@ function goPrev() {
     }
   }
   if (STATE.currentPhase === 2) {
-    const partOrder = ['D_common','D_stage1','D_mc2','D_stage2','D_stage3','F'];
+    const partOrder = ['D_common','D_stage1','D_mc2','D_stage2','D_stage3','F','E'];
     const curIdx = partOrder.indexOf(STATE.currentPart);
     if (curIdx > 0) {
       const prevPart = partOrder[curIdx - 1];
@@ -4977,7 +5346,10 @@ function renderIBPostPartF() {
         extraExplore: extra,
         partFCompletedAt: Date.now()
       });
-      showPreParteIntro();
+      // Part E 직접 진입
+      STATE.currentPart = 'E';
+      STATE.currentIndex = 0;
+      renderCurrentQuestion();
     }
   });
 
@@ -4990,37 +5362,161 @@ function renderIBPostPartF() {
   });
 }
 
-/* Part E 진입 직전 임시 화면 (Part E·IB#6는 7·8순위에서 구현) */
-function showPreParteIntro() {
-  setProgress(75);
+/* IB#6 — Part E 종료 후 간절함 미터 + 최종 C형 목표 + Phase 3 안내 (Phase 2 · 3/3) */
+function renderIBPostPartE() {
+  const passion   = calculatePassionScore(STATE.answers);
+  const extraE    = countExtraExplorePartE(STATE.answers);
+  const finalGoal = extractFinalGoal(STATE.answers);
+  const e9label   = stripOptionPrefix(STATE.answers.E9?.label);
+  const e10label  = stripOptionPrefix(STATE.answers.E10?.label);
+  const e12key    = STATE.answers.E12?.tags?.meta_state;
+
+  const title         = PASSION_TITLES[passion.level]   || PASSION_TITLES.exploring;
+  const passionMsg    = PASSION_MESSAGES[passion.level] || PASSION_MESSAGES.exploring;
+
+  // 최종 C형 목표 카드
+  const goalCardHtml = finalGoal.statement
+    ? `<div class="route-card" style="border-left-color: var(--gold); margin-bottom:16px;">
+         <span class="route-badge" style="background: var(--gold); color: var(--navy);">최종 C형 목표</span>
+         <div class="route-name" style="font-size:18px;line-height:1.4;">${escapeHtml(finalGoal.statement)}</div>
+         ${finalGoal.beingForm
+           ? `<div class="route-desc" style="margin-top:8px;font-style:italic;">→ ${escapeHtml(finalGoal.beingForm)}</div>`
+           : ''}
+       </div>`
+    : `<div class="route-card" style="border-left-color: var(--warning); margin-bottom:16px;">
+         <span class="route-badge" style="background: var(--warning); color: var(--white);">목표 확정 보류</span>
+         <div class="route-name">OT에서 함께 정합니다</div>
+         <div class="route-desc">"아직 모르겠다"는 솔직한 답입니다. MH님과 함께 천천히 모양을 잡아갑니다.</div>
+       </div>`;
+
+  // 정체성 연결 (E9 + E10)
+  const identityHtml = e9label
+    ? `<div class="summary-block">
+         <div class="h">정체성 연결</div>
+         <div class="t">당신은 <strong>${escapeHtml(e9label)}</strong>이 됩니다.</div>
+         ${e10label ? `<div class="d" style="margin-top:6px;">지금과의 차이 — ${escapeHtml(e10label)}</div>` : ''}
+       </div>`
+    : '';
+
+  // 간절함 미터 (IB#5 미터 컴포넌트 재사용)
+  const meterHtml = `
+    <div class="consistency-meter" style="margin-top:16px;">
+      <div class="meter-track">
+        <span class="meter-thresh-mark"></span>
+        <div class="meter-fill" id="passion-fill-bar" style="width:0%;"></div>
+      </div>
+      <div class="meter-meta">
+        <span class="meter-label">간절함</span>
+        <span class="meter-value">${passion.percentage}<span style="font-size:14px;color:var(--text-muted);font-weight:600;">%</span></span>
+      </div>
+    </div>
+  `;
+
+  const passionMsgHtml = `<p class="ib-body" style="margin-top:18px;">${escapeHtml(passionMsg)}</p>`;
+
+  // E12 메타 응답 보조 메시지
+  const e12msgHtml = e12key && E12_FOLLOWUPS[e12key]
+    ? `<p class="ib-body" style="margin-top:12px;font-size:14px;color:var(--text-secondary);">${escapeHtml(E12_FOLLOWUPS[e12key])}</p>`
+    : '';
+
+  // extra_explore ≥ 2
+  const extraMsgHtml = extraE >= 2
+    ? `<div class="extra-explore-note">일부 답변에 더 살펴볼 신호가 있습니다 (<strong>${extraE}개 영역</strong>). OT에서 더 깊이 다룹니다.</div>`
+    : '';
+
+  const html = `
+    ${goalCardHtml}
+    ${identityHtml}
+    ${meterHtml}
+    ${passionMsgHtml}
+    ${e12msgHtml}
+    ${extraMsgHtml}
+    <p class="ib-body" style="margin-top:18px;">
+      <strong>Phase 2가 마무리되었습니다.</strong> 다음은 <em>Phase 3</em> — 100일 동안의 실행 계획을 그려갑니다.
+    </p>
+  `;
+
+  renderInsightBreakShell({
+    number: 6,
+    label: "Phase 2 · 인사이트 브레이크 3/3",
+    title: title,
+    contentHtml: html,
+    ctaText: "Phase 3 — 100일 실행 계획으로",
+    saveBtn: true,
+    onContinue: () => {
+      gaEvent('compass_phase_complete', {
+        phase: 2,
+        passion: passion.percentage,
+        passion_level: passion.level,
+        final_goal_id: finalGoal.goalId || 'undecided',
+        confidence: finalGoal.confidence,
+        extra_explore_e: extraE
+      });
+      save('compass_phase2', {
+        answers: STATE.answers,
+        route: STATE.route,
+        bTypeFlagged: STATE.bTypeFlagged,
+        finalGoal,
+        passion,
+        extraExploreE: extraE,
+        identityArea: STATE.answers.E9?.tags?.identity_area || null,
+        identityScene: STATE.answers.E10?.tags?.identity_scene || null,
+        identityFocus: STATE.answers.E11?.tags?.identity_focus || null,
+        completedAt: Date.now()
+      });
+      showPhase3Placeholder();
+    }
+  });
+
+  // 미터 바 0%→실제값 애니메이션
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      const bar = document.getElementById('passion-fill-bar');
+      if (bar) bar.style.width = passion.percentage + '%';
+    }, 200);
+  });
+}
+
+/* Phase 3 placeholder (Phase 3는 다음 빌드) */
+function showPhase3Placeholder() {
+  setProgress(80);
   STATE.currentScreen = 'phase2Complete';
   const app = $('#app');
-  const cons = calculateConsistency(STATE.answers, STATE.axes);
-  const extra = countExtraExplore(STATE.answers);
+  const passion   = calculatePassionScore(STATE.answers);
+  const finalGoal = extractFinalGoal(STATE.answers);
+
+  const goalChip = finalGoal.statement
+    ? `<div style="background:var(--teal-light);padding:18px;border-radius:14px;margin:24px 0;text-align:left;">
+         <div style="font-size:11px;font-weight:700;color:var(--teal);letter-spacing:0.05em;margin-bottom:6px;">최종 C형 목표</div>
+         <div style="font-size:16px;font-weight:700;color:var(--navy);line-height:1.45;">${escapeHtml(finalGoal.statement)}</div>
+       </div>`
+    : '';
+
   app.innerHTML = `
     <div class="complete">
       <div class="checkmark">✓</div>
-      <h1 style="font-size:24px;margin:0 0 12px;color:var(--navy);">Part F 검증 완료</h1>
-      <p class="muted">교차 검증과 일치도 측정이 끝났습니다 (일치도 ${cons.percentage}%${extra >= 2 ? ` · 추가 탐색 ${extra}개 영역` : ''}).</p>
+      <h1 style="font-size:24px;margin:0 0 12px;color:var(--navy);">Phase 2 완료</h1>
+      <p class="muted">${escapeHtml(STATE.participantName || '당신')}님의 C형 목표가 정리되었습니다 (간절함 ${passion.percentage}%).</p>
+
+      ${goalChip}
 
       <div class="card" style="margin:24px 0;text-align:left;">
-        <h3>다음에 할 것 — Part E</h3>
-        <ul>
-          <li>간절함 8문항 — 감정/실용 교차 측정</li>
-          <li>정체성 3문항 — "이것을 이루면 나는 어떤 사람이 되는가"</li>
-          <li>메타 1문항 + 최종 확정 2문항 (E13·E14 적응형)</li>
-          <li>약 10~12분 소요</li>
-        </ul>
-        <p class="muted" style="margin-top:12px;">현재 Part E·IB#6은 다음 빌드에서 제공됩니다. Part F 답변과 일치도는 자동 저장되었습니다.</p>
+        <div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:8px;letter-spacing:0.05em;">다음 단계: PHASE 3</div>
+        <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:8px;">100일 중간 목표 + 현재 상태</div>
+        <div style="font-size:14px;color:var(--text-secondary);">23문항 · 약 18~22분 · 인사이트 브레이크 2회</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-top:12px;">
+          5영역(건강·재정·성장·관계·기여) 현재 vs 100일 후 + 100일 방향 착지.
+          현재 Phase 3는 다음 빌드에서 제공됩니다. 진행 데이터는 자동 저장되었습니다.
+        </div>
       </div>
 
       <div class="actions" style="flex-direction:column;">
-        <button class="btn btn-secondary" id="review-ib5">Part F 일치도 다시 보기</button>
+        <button class="btn btn-secondary" id="review-ib6">Phase 2 결과 다시 보기</button>
         <button class="btn btn-ghost" id="back-phase1" style="margin-top:8px;">처음 화면으로</button>
       </div>
     </div>
   `;
-  $('#review-ib5').addEventListener('click', renderIBPostPartF);
+  $('#review-ib6').addEventListener('click', renderIBPostPartE);
   $('#back-phase1').addEventListener('click', () => {
     if (confirm('처음 화면으로 돌아갑니다. 진행 데이터는 유지됩니다.')) renderIntro();
   });
