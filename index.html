@@ -318,6 +318,39 @@
     font-size: 14px; color: var(--text-secondary);
   }
 
+  /* Profile summary card (IB3) */
+  .profile-summary {
+    background: var(--white); border-radius: 16px;
+    padding: 20px 22px; margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(27,42,74,.06);
+  }
+  .profile-summary .ps-title {
+    font-size: 12px; font-weight: 700;
+    color: var(--text-muted); letter-spacing: 0.08em;
+    text-transform: uppercase; margin-bottom: 14px;
+  }
+  .profile-summary .ps-item {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .profile-summary .ps-item:last-of-type { border-bottom: none; padding-bottom: 4px; }
+  .profile-summary .ps-axis {
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 0.03em;
+  }
+  .profile-summary .ps-axis.high { color: var(--teal); }
+  .profile-summary .ps-axis.low  { color: var(--navy); }
+  .profile-summary .ps-text {
+    font-size: 15px; color: var(--text-primary);
+    font-weight: 500; line-height: 1.45;
+  }
+  .profile-summary .ps-neutral {
+    font-size: 14px; color: var(--text-secondary);
+    margin: 0; line-height: 1.55;
+  }
+
+  /* Save fallback page (mobile new tab) — body styles applied via inline doc */
+
   /* Phase 1 complete */
   .complete {
     text-align: center; padding: 48px 16px;
@@ -401,6 +434,35 @@ const AXIS_POLES = {
   axis6: ["숙련 확장", "새로운 도전"],
   axis7: ["단기 집중", "장기 여정"],
   axis8: ["분산", "집중"]
+};
+
+// IB3 프로필 요약 해석 문구 (low: ≤2.0, high: ≥3.5)
+// v3 Section 6-1 축 정의 + 자기 인식형 톤 (판단/평가 회피)
+const AXIS_INTERPRETATIONS = {
+  axis1: { name: "변화 방향",
+           high: "삶에 새로 더하고 싶은 무언가가 분명한 편입니다",
+           low:  "지금 어깨를 누르는 무게를 먼저 덜어내고 싶어합니다" },
+  axis2: { name: "변화 대상",
+           high: "환경과 조건이 받쳐줄 때 내 행동이 자연스럽게 따라옵니다",
+           low:  "내 습관과 마음을 다듬는 데서 변화가 시작된다고 봅니다" },
+  axis3: { name: "동기 원천",
+           high: "기대되는 미래의 모습이 행동을 끌어당기는 편입니다",
+           low:  "후회하지 않으려는 마음이 행동을 밀어내는 편입니다" },
+  axis4: { name: "성취 형태",
+           high: "안에서 자연스러워진 변화가 진짜라고 느껴집니다",
+           low:  "눈으로 확인할 수 있는 결과가 진짜 변화로 다가옵니다" },
+  axis5: { name: "관계 지향",
+           high: "이루는 일에 소중한 사람들이 자연스럽게 함께 떠오릅니다",
+           low:  "이루는 일은 나 혼자 조용히 매듭짓는 게 자연스럽습니다" },
+  axis6: { name: "도전 성향",
+           high: "한 번도 가본 적 없는 길에 발을 내딛는 데 끌립니다",
+           low:  "잘 아는 영역을 한 단계 더 깊게 다지는 데 더 끌립니다" },
+  axis7: { name: "시간 감각",
+           high: "오늘의 한 걸음을 먼 여정의 일부로 보는 편입니다",
+           low:  "결과가 빠르게 손에 잡혀야 행동을 이어갈 수 있습니다" },
+  axis8: { name: "영역 집중",
+           high: null /* 동적: "{영역명}에 가장 큰 관심이 향해 있습니다" */,
+           low:  "관심이 한 영역에 모이기보다 여러 곳에 펼쳐져 있습니다" }
 };
 
 /* ---------- 1. 질문 데이터 ---------- */
@@ -1390,16 +1452,90 @@ function renderInsightBreakShell({ number, label, title, contentHtml, ctaText, o
   return overlay;
 }
 
-function saveIBImage(el) {
+function isMobileDevice() {
+  return /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
+}
+
+async function saveIBImage(el) {
   const target = el.querySelector('.ib-inner');
   if (!window.html2canvas || !target) return;
-  html2canvas(target, { backgroundColor: null, scale: 2 }).then(canvas => {
+
+  const filename = `나침반_Phase1_${(STATE.participantName||'나의결과').replace(/\s+/g,'_')}_${Date.now()}.png`;
+  const btn = el.querySelector('#ib-save-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '이미지 생성 중…'; }
+
+  try {
+    const canvas = await html2canvas(target, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/png', 0.95));
+    if (!blob) throw new Error('blob conversion failed');
+
+    const file = new File([blob], filename, { type: 'image/png' });
+    const canShareFiles = !!(navigator.canShare && navigator.canShare({ files: [file] }));
+
+    // 1) Web Share API (파일 공유 가능한 경우 — iOS Safari 14.5+ / Android Chrome 등)
+    if (canShareFiles && navigator.share) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: '100일 나침반 진단 결과',
+          text: `${STATE.participantName || '나'}의 갈망 프로필`
+        });
+        gaEvent('compass_save_result', { format: 'share_files', phase: 1 });
+        return;
+      } catch (err) {
+        // 사용자 취소(AbortError)는 그냥 종료
+        if (err && err.name === 'AbortError') return;
+        // 그 외 실패 시 다음 단계로 fallthrough
+      }
+    }
+
+    // 2) 모바일 + Web Share 미지원 → 새 창에 이미지 + 길게 눌러 저장 안내
+    if (isMobileDevice()) {
+      const url = URL.createObjectURL(blob);
+      const w = window.open('', '_blank');
+      if (!w) {
+        alert('새 창이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도해주세요.');
+        return;
+      }
+      w.document.open();
+      w.document.write(
+        '<!doctype html><html lang="ko"><head>' +
+        '<meta charset="utf-8">' +
+        '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+        '<title>나침반 결과</title>' +
+        '<style>' +
+          'body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Pretendard Variable","Apple SD Gothic Neo",sans-serif;background:#F8F9FA;color:#1B2A4A;text-align:center;}' +
+          '.msg{padding:14px 16px;font-size:15px;background:#1A8F6A;color:#fff;font-weight:700;line-height:1.5;}' +
+          '.sub{padding:10px 16px;font-size:13px;color:#5A6B7D;background:#fff;}' +
+          'img{width:100%;display:block;}' +
+        '</style></head><body>' +
+        '<div class="msg">이미지를 <strong>길게 눌러</strong> "사진에 저장" 또는 "이미지 다운로드"를 선택해주세요</div>' +
+        '<div class="sub">저장 후 이 창은 닫으셔도 됩니다.</div>' +
+        '<img src="' + url + '" alt="나침반 결과" />' +
+        '</body></html>'
+      );
+      w.document.close();
+      gaEvent('compass_save_result', { format: 'newtab_longpress', phase: 1 });
+      return;
+    }
+
+    // 3) 데스크톱 → 기존 다운로드
     const link = document.createElement('a');
-    link.download = `나침반_Phase1_${(STATE.participantName||'나의결과').replace(/\s+/g,'_')}_${Date.now()}.png`;
-    link.href = canvas.toDataURL('image/png');
+    link.download = filename;
+    link.href = URL.createObjectURL(blob);
+    document.body.appendChild(link);
     link.click();
-    gaEvent('compass_save_result', { format: 'image', phase: 1 });
-  });
+    setTimeout(() => {
+      URL.revokeObjectURL(link.href);
+      link.remove();
+    }, 1000);
+    gaEvent('compass_save_result', { format: 'download', phase: 1 });
+  } catch (err) {
+    console.error('saveIBImage error:', err);
+    alert('결과 저장 중 문제가 발생했습니다. 다시 시도해주세요.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '결과 저장하기'; }
+  }
 }
 
 /* IB1: 키워드 1개 */
@@ -1509,6 +1645,8 @@ function renderIB3() {
       <canvas id="ib3-radar" class="radar-canvas" width="400" height="400"></canvas>
     </div>
 
+    ${renderProfileSummary(axes, STATE.answers)}
+
     <div class="summary-block">
       <div class="h">가장 큰 갈망</div>
       <div class="t">${escapeHtml(desireLabel)}</div>
@@ -1613,6 +1751,67 @@ function drawRadar(canvasId, axes) {
       }
     }
   });
+}
+
+/* IB3 프로필 요약: 상위 2 + 하위 1 */
+function buildProfileSummary(axes, answers) {
+  const HIGH = 3.5, LOW = 2.0;
+  const candidates = [];
+  for (let i = 1; i <= 8; i++) {
+    const k = `axis${i}`;
+    candidates.push({ key: k, score: axes[k], name: AXIS_INTERPRETATIONS[k].name });
+  }
+  const high = candidates.filter(a => a.score >= HIGH).sort((a,b) => b.score - a.score).slice(0, 2);
+  const low  = candidates.filter(a => a.score <= LOW ).sort((a,b) => a.score - b.score).slice(0, 1);
+
+  if (!high.length && !low.length) return { neutral: true, items: [] };
+
+  const items = [];
+  high.forEach(a => {
+    let text;
+    if (a.key === 'axis8') {
+      const top = getTopArea(answers, ['Q1','Q2','Q3','Q4','Q5','Q6','Q7','QB1','QB2','QB3','QB4','QB5']);
+      text = `${AREA_LABELS[top] || '특정 영역'}에 가장 큰 관심이 향해 있습니다`;
+    } else {
+      text = AXIS_INTERPRETATIONS[a.key].high;
+    }
+    items.push({ direction: 'high', name: a.name, text });
+  });
+  low.forEach(a => {
+    items.push({
+      direction: 'low',
+      name: a.name,
+      text: AXIS_INTERPRETATIONS[a.key].low
+    });
+  });
+  return { neutral: false, items };
+}
+
+function renderProfileSummary(axes, answers) {
+  const summary = buildProfileSummary(axes, answers);
+  if (summary.neutral) {
+    return `
+      <div class="profile-summary">
+        <div class="ps-title">당신의 프로필 요약</div>
+        <p class="ps-neutral">여러 방향이 균형 있게 자리잡고 있습니다 — Phase 2에서 우선순위가 보입니다.</p>
+      </div>
+    `;
+  }
+  const itemsHtml = summary.items.map(it => {
+    const icon = it.direction === 'high' ? '▲' : '▼';
+    return `
+      <div class="ps-item">
+        <span class="ps-axis ${it.direction}">${icon} ${escapeHtml(it.name)}</span>
+        <span class="ps-text">${escapeHtml(it.text)}</span>
+      </div>
+    `;
+  }).join('');
+  return `
+    <div class="profile-summary">
+      <div class="ps-title">당신의 프로필 요약</div>
+      ${itemsHtml}
+    </div>
+  `;
 }
 
 /* ---------- 11. Phase 1 완료 화면 ---------- */
