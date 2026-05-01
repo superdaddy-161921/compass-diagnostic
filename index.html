@@ -436,6 +436,31 @@
     to { opacity: 0; transform: translate(-50%, -10px); }
   }
 
+  /* E13·E14 적응형 옵션 안내 */
+  .adaptive-hint {
+    background: #F1F8F4; color: var(--teal-dark);
+    padding: 10px 12px; border-radius: 10px;
+    font-size: 13px; line-height: 1.5; font-weight: 500;
+    margin: 0 0 12px;
+    border-left: 3px solid var(--teal);
+  }
+
+  /* E14 C형 목표 카드 (옵션 본문 위 분리 표시) */
+  .e14-goal-card {
+    background: var(--teal-light); border-radius: 12px;
+    padding: 14px 16px; margin: 0 0 16px;
+    border-left: 3px solid var(--teal);
+  }
+  .e14-goal-card .e14-goal-label {
+    font-size: 12px; color: var(--teal-dark);
+    font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+  .e14-goal-card .e14-goal-text {
+    font-size: 16px; color: var(--navy);
+    font-weight: 700; line-height: 1.45;
+  }
+
   /* IB#3 결과 해석 팁 (영역 측정 한계 안내) */
   .result-tip {
     font-size: 14px; color: var(--text-muted);
@@ -1124,6 +1149,7 @@ const QUESTIONS = {
     partF: [
       // ====== 1겹: Phase 1 행동 데이터 교차 ======
       { id: "F1", type: "single", part: "F",
+        condition: { questionId: "QB1", valueNot: "F" },
         text: "Phase 1에서 당신이 실제로 가장 많은 시간을 쓴 활동은 [QB1 결과]였습니다. 지금 세우려는 목표와 관련이 있나요?",
         options: [
           { label: "(A) 직접적으로 관련 있다 — 이미 행동으로 옮기고 있었다", value: "A", tags: { consistency: 1.0 } },
@@ -1133,6 +1159,7 @@ const QUESTIONS = {
         ]
       },
       { id: "F2", type: "single", part: "F",
+        condition: { questionId: "QB2", valueNot: "F" },
         text: "Phase 1에서 당신이 가장 자주 소비한 콘텐츠는 [QB2 결과] 분야였습니다. 지금 세우려는 목표와의 관계는?",
         options: [
           { label: "(A) 같은 분야다 — 관심이 일관된다",                    value: "A", tags: { consistency: 1.0 } },
@@ -1142,6 +1169,7 @@ const QUESTIONS = {
         ]
       },
       { id: "F3", type: "single", part: "F",
+        condition: { questionId: "QB3", valueNot: "F" },
         text: "Phase 1에서 당신이 가장 오래 고민한 주제는 [QB3 결과]였습니다. 이것과 C형 목표의 관계는?",
         options: [
           { label: "(A) 바로 이 고민을 해결하는 것이 내 목표다",          value: "A", tags: { consistency: 1.0 } },
@@ -1151,6 +1179,7 @@ const QUESTIONS = {
         ]
       },
       { id: "F4", type: "single", part: "F",
+        condition: { questionId: "QB4", valueNot: "F" },
         text: "Phase 1에서 당신이 충동적으로 돈을 쓴 분야는 [QB4 결과]였습니다. 지금 목표와 같은 분야인가요?",
         options: [
           { label: "(A) 같은 분야다",                value: "A", tags: { consistency: 1.0 } },
@@ -1181,18 +1210,18 @@ const QUESTIONS = {
       { id: "F7", type: "forced", part: "F",
         text: "Phase 1에서 당신의 갈망 프로필 1위는 [축 8 결과]였습니다. 지금 C형 목표 후보와 일치하나요?",
         options: [
-          { label: "(A) 일치한다 — 같은 영역이다",                  value: "A", tags: { consistency: 1.0 } },
-          { label: "(B) 다르다 — C형 목표가 다른 영역에서 나왔다",   value: "B", tags: { consistency: 0.0 } }
+          { label: "(A) 일치한다 — 같은 영역이다",                                value: "A", tags: { consistency: 1.0 } },
+          { label: "(B) 다르다 — 또는 아직 C형 목표가 명확하지 않다",              value: "B", tags: { consistency: 0.0 } }
         ]
       },
       { id: "F8", type: "single", part: "F",
         condition: { questionId: "F7", value: "B" }, // F7=B일 때만 표시
         text: "어느 쪽이 당신의 진짜 갈망에 더 가까운가요?",
         options: [
-          { label: "(A) Phase 1에서 나온 방향이 더 진짜다",          value: "A", tags: { consistency: 0.0, extra_explore: true } },
-          { label: "(B) Phase 2에서 나온 C형 목표가 더 진짜다",      value: "B", tags: { consistency: 1.0 } },
-          { label: "(C) 둘 다 중요하다 — 연결되어 있다",             value: "C", tags: { consistency: 0.5 } },
-          { label: "(D) 솔직히 모르겠다",                             value: "D", tags: { consistency: 0.0, extra_explore: true } }
+          { label: "(A) Phase 1 갈망([축 8 결과]) 방향이 더 진짜다",        value: "A", dynamicLabel: true, tags: { consistency: 0.0, extra_explore: true } },
+          { label: "(B) Phase 2 C형 목표([D20 선택 결과])가 더 진짜다",     value: "B", dynamicLabel: true, tags: { consistency: 1.0 } },
+          { label: "(C) 둘 다 중요하다 — 연결되어 있다",                   value: "C", tags: { consistency: 0.5 } },
+          { label: "(D) 솔직히 모르겠다",                                   value: "D", tags: { consistency: 0.0, extra_explore: true } }
         ]
       },
 
@@ -3645,15 +3674,19 @@ function buildPhase2Order(answers, route) {
     ROUTE_QUESTIONS[route].stage3.forEach(q => order.push({ ...q, part: "D_stage3" }));
   }
 
-  // Part F (12문항, F8은 F7=B 조건부)
+  // Part F (F8은 F7=B 조건부 / F1~F4는 QB1~QB4가 (F) 답변이 아닐 때만 표시)
   (QUESTIONS.phase2.partF || []).forEach(q => {
     if (q.condition) {
       const cond = q.condition;
       const ans = answers?.[cond.questionId];
-      if (ans?.value === cond.value) {
-        order.push({ ...q, part: "F" });
+      let shouldInclude = true;
+      if ('valueNot' in cond) {
+        // 답변이 valueNot과 다를 때만 포함 (미응답이면 기본 포함)
+        shouldInclude = !ans || ans.value !== cond.valueNot;
+      } else if ('value' in cond) {
+        shouldInclude = ans?.value === cond.value;
       }
-      // 조건 미충족이면 스킵 (예: F7=A 일 때 F8 미포함)
+      if (shouldInclude) order.push({ ...q, part: "F" });
     } else {
       order.push({ ...q, part: "F" });
     }
@@ -3829,8 +3862,21 @@ function replacePlaceholders(template, state) {
     '[Q36 결과]': stripOptionPrefix(a.Q36?.label),
     '[Q37 결과]': stripOptionPrefix(a.Q37?.label)
   };
-  const topArea = getTopArea(a, ['Q1','Q2','Q3','Q4','Q5','Q6','Q7','QB1','QB2','QB3','QB4','QB5']);
+  // [축 8 결과] = 갈망 1위. IB#3 'topDesire'와 동일하게 토너먼트 우선 → 카운트 폴백
+  const topArea = state.tournament?.winners?.final
+                || getTopArea(a, ['Q1','Q2','Q3','Q4','Q5','Q6','Q7','QB1','QB2','QB3','QB4','QB5']);
   subs['[축 8 결과]'] = (topArea && AREA_LABELS[topArea]) ? AREA_LABELS[topArea] : '아직 정해지지 않은 영역';
+
+  // [D20 선택 결과] = 사용자가 D20에서 고른 C형 목표 본문 (없으면 placeholder 메시지)
+  const route = state.route;
+  let d20Goal = null;
+  if (route && typeof GOAL_POOL !== 'undefined') {
+    const d20Ans = a[`D20-${route}`];
+    if (d20Ans?.tags?.goal_id) {
+      d20Goal = GOAL_POOL.goals.find(g => g.id === d20Ans.tags.goal_id);
+    }
+  }
+  subs['[D20 선택 결과]'] = d20Goal?.achievement_form || '아직 정해지지 않은 목표';
 
   // 위치별 교체 + 직후 조사 보정
   const placeholders = Object.keys(subs);
@@ -3865,22 +3911,47 @@ function replacePlaceholders(template, state) {
   return out;
 }
 
-// v3 Section 15-2: D20 적응형 매칭
+// v3 Section 15-2: D20 적응형 매칭 (4단 폴백)
 function matchGoalsForD20(answers, route) {
+  if (typeof GOAL_POOL === 'undefined' || !GOAL_POOL.goals?.length) return [];
+
+  // 1차 풀: 해당 루트 (정상 케이스)
   let pool = GOAL_POOL.goals.filter(g => g.route === route);
+
+  // 폴백 1: route 무효(null/undefined) → 모든 루트의 범용 후보로 풀 구성
+  if (pool.length === 0) {
+    pool = GOAL_POOL.goals.filter(g => g.attribute_combo === '범용');
+  }
+
   const d6 = answers[`D6-${route}`]?.value;
   const d7 = answers[`D7-${route}`]?.value;
   const d8 = answers[`D8-${route}`]?.value;
   const combo = `${d6}-${d7}-${d8}`;
+
+  // 2차: combo 정확 매칭
   let matched = pool.filter(g => g.attribute_combo === combo);
+
+  // 폴백 2 (v3 spec): matched < 4 → 같은 풀 범용 후보 추가
   if (matched.length < 4) {
     const generic = pool.filter(g => g.attribute_combo === '범용');
     matched = matched.concat(generic);
   }
+
+  // 폴백 3: matched < 3 → 같은 풀의 나머지 후보 추가 (combo 다름)
+  if (matched.length < 3) {
+    const remaining = pool.filter(g => !matched.includes(g));
+    matched = matched.concat(remaining);
+  }
+
+  // 폴백 4 (최후): matched < 3 → GOAL_POOL 전체에서 보충
+  if (matched.length < 3) {
+    const allOthers = GOAL_POOL.goals.filter(g => !matched.includes(g));
+    matched = matched.concat(allOthers);
+  }
+
   const d11 = answers[`D11-${route}`]?.sliderValue ?? 3;
   const d15 = answers[`D15-${route}`]?.sliderValue ?? 3;
   const preferH = (d11 + d15) >= 7;
-  // Stable sort with both args considered
   matched.sort((a, b) => {
     const aPref = (preferH ? a.intensity === 'H' : a.intensity === 'M') ? 0 : 1;
     const bPref = (preferH ? b.intensity === 'H' : b.intensity === 'M') ? 0 : 1;
@@ -4140,14 +4211,37 @@ function generateTournament(answers) {
 }
 
 /* ---------- 7. 렌더링: 인트로 ---------- */
+function isStorageBlocked() {
+  try {
+    const k = '_compass_test_' + Date.now();
+    localStorage.setItem(k, '1');
+    const got = localStorage.getItem(k);
+    localStorage.removeItem(k);
+    return got !== '1';
+  } catch (e) {
+    return true;
+  }
+}
+
 function renderIntro() {
   setProgress(null);
   STATE.currentScreen = 'intro';
   const app = $('#app');
+  const storageBlocked = isStorageBlocked();
+  const secretNoticeHtml = storageBlocked ? `
+    <div class="card" style="background:#FFFBEB;border:1px solid #FBBF24;">
+      <p style="font-size:14px;color:#78350F;line-height:1.55;margin:0;">
+        💡 시크릿 모드(또는 사생활 보호 모드)에서는 답변이 저장되지 않습니다.
+        35~50분 진단을 한 번에 완료하실 수 없다면 일반 모드 사용을 권장합니다.
+      </p>
+    </div>
+  ` : '';
   app.innerHTML = `
     <div class="intro">
       <h1>100일 나침반 진단</h1>
       <p class="subtitle">습관화 프로젝트 3기 · C형 목표를 찾는 여정</p>
+
+      ${secretNoticeHtml}
 
       <div class="card">
         <h3>시작하기 전에</h3>
@@ -4354,7 +4448,14 @@ function renderQuestion(q, questionNum, totalNum) {
 
   // 타입별 본문
   if (q.type === 'single' || q.type === 'forced') {
-    body += renderOptions(q.options, q.id);
+    // F-part 동적 옵션 라벨 (dynamicLabel: true 마커 보유 시 치환)
+    let renderOpts = q.options;
+    if (q.part === 'F' && q.options?.some(o => o.dynamicLabel)) {
+      renderOpts = q.options.map(o => o.dynamicLabel
+        ? { ...o, label: replacePlaceholders(o.label, STATE) }
+        : o);
+    }
+    body += renderOptions(renderOpts, q.id);
   } else if (q.type === 'slider') {
     body += renderSlider(q);
   } else if (q.type === 'tournament') {
@@ -4529,6 +4630,8 @@ function renderE13AdaptiveOptions(q) {
   const labelA = altA ? altA.achievement_form : '같은 루트의 다른 형태 (후보 부족)';
   const labelB = altB ? altB.achievement_form : '다른 영역의 후보 (후보 부족)';
 
+  const hintHtml = `<p class="adaptive-hint">💡 후보가 마음에 들지 않으면 (D) 또는 (E)를 선택해주세요. OT에서 함께 다듬어가겠습니다.</p>`;
+
   const opts = [
     { label: `(A) ${labelA}`, value: "A",
       tags: { e13_choice: "altA", goal_id: altA?.id || null } },
@@ -4542,7 +4645,7 @@ function renderE13AdaptiveOptions(q) {
       tags: { e13_choice: "both", extra_explore: true } }
   ];
   q._dynamicOptions = opts;
-  return renderOptions(opts, q.id);
+  return hintHtml + renderOptions(opts, q.id);
 }
 
 // E14 적응형 옵션 렌더 (4지/5지 — E13 결과에 따라 (B) 동적 추가)
@@ -4551,11 +4654,9 @@ function renderE14AdaptiveOptions(q) {
   const labelA = s.optionA_goal?.achievement_form || '아직 정해지지 않음 (OT에서 함께 정함)';
   const goalAId = s.optionA_goal?.id || null;
 
-  // (A) 옵션에 출처 힌트 추가 — 사용자에게 "이게 왜 여기 있는지" 명시
-  const hintA = goalAId ? '  ← 당신의 C형 목표' : '';
-
+  // (A) 옵션 — 힌트 라벨 제거, 별도 카드로 본문 위에 분리 표시 (#32)
   const opts = [
-    { label: `(A) ${labelA}${hintA}`, value: "A",
+    { label: `(A) ${labelA}`, value: "A",
       tags: { goal_id: goalAId, source: s.optionA_source, confidence: 'committed' } }
   ];
 
@@ -4588,8 +4689,19 @@ function renderE14AdaptiveOptions(q) {
     tags: { goal_id: null, source: 'undecided', confidence: 'unsure', extra_explore: true }
   });
 
+  // 별도 C형 목표 카드 (옵션 본문 위에 분리 표시 — #32)
+  let goalCardHtml = '';
+  if (goalAId && s.optionA_goal) {
+    goalCardHtml = `
+      <div class="e14-goal-card">
+        <div class="e14-goal-label">당신의 C형 목표 후보</div>
+        <div class="e14-goal-text">${escapeHtml(s.optionA_goal.achievement_form)}</div>
+      </div>
+    `;
+  }
+
   q._dynamicOptions = opts;
-  return renderOptions(opts, q.id);
+  return goalCardHtml + renderOptions(opts, q.id);
 }
 
 function restoreAnswer(q) {
