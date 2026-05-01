@@ -17,6 +17,10 @@ node_modules/
 dist/
 .netlify/
 
+# Local debug/simulation harnesses (keep for re-use, don't publish)
+_sim_*.js
+_check*.js
+
 # Claude Code workspace
 .claude/
 docs/

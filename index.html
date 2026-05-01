@@ -263,7 +263,9 @@
     color: var(--navy); font-weight: 700; font-style: normal;
   }
   .ib-dark .ib-body strong, .ib-dark .ib-body em { color: #7FE3B9; }
-  .ib-actions { margin-top: 24px; }
+  .ib-actions { margin-top: 24px; text-align: center; }
+  .ib-actions .btn { display: block; width: 100%; max-width: 360px; margin: 0 auto 10px; }
+  .ib-actions .btn:last-of-type { margin-bottom: 0; }
 
   /* Match cards (IB2) */
   .match-cards {
@@ -329,6 +331,12 @@
     color: var(--text-muted); letter-spacing: 0.08em;
     text-transform: uppercase; margin-bottom: 14px;
   }
+  .profile-summary .ps-legend {
+    font-size: 13px; color: var(--text-secondary);
+    line-height: 1.55; margin: 0 0 14px;
+    padding-bottom: 12px; border-bottom: 1px dashed var(--border);
+  }
+  .profile-summary .ps-legend strong { color: var(--navy); font-weight: 700; }
   .profile-summary .ps-item {
     display: flex; flex-direction: column; gap: 4px;
     padding: 12px 0; border-bottom: 1px solid var(--border);
@@ -399,6 +407,43 @@
     font-size: 11px; font-weight: 700; letter-spacing: 0.05em;
     padding: 4px 10px; border-radius: 6px; margin-bottom: 8px;
   }
+
+  /* 이어하기 배너 (1회 표시, 5초 자동 사라짐) */
+  .resume-banner {
+    position: fixed; top: 8px; left: 50%;
+    transform: translateX(-50%);
+    background: #FFFBEB; color: #78350F;
+    padding: 10px 14px 10px 16px; border-radius: 12px;
+    font-size: 13px; line-height: 1.5;
+    border: 1px solid #FBBF24;
+    max-width: calc(100vw - 24px); width: max-content;
+    z-index: 1000;
+    box-shadow: 0 4px 16px rgba(245,158,11,.22);
+    display: flex; align-items: center; gap: 10px;
+    animation: bannerIn .35s cubic-bezier(.22,1,.36,1);
+  }
+  .resume-banner.fading { animation: bannerOut .35s ease forwards; }
+  .resume-banner-close {
+    background: transparent; border: none; cursor: pointer;
+    color: #92400E; padding: 4px 6px; flex-shrink: 0;
+    font-size: 18px; line-height: 1; font-weight: 700;
+  }
+  @keyframes bannerIn {
+    from { opacity: 0; transform: translate(-50%, -10px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+  }
+  @keyframes bannerOut {
+    to { opacity: 0; transform: translate(-50%, -10px); }
+  }
+
+  /* IB#3 결과 해석 팁 (영역 측정 한계 안내) */
+  .result-tip {
+    font-size: 14px; color: var(--text-muted);
+    line-height: 1.6;
+    border-top: 1px solid var(--border);
+    margin: 16px 0; padding-top: 16px;
+  }
+  .result-tip strong { color: var(--navy); font-weight: 700; }
 
   /* IB#5 일치도 미터 */
   .consistency-meter {
@@ -632,7 +677,7 @@ const QUESTIONS = {
         options: [
           { label: "(A) 몸을 움직이며 땀을 흘리고 싶다", value: "A", tags: { axis8: "health" } },
           { label: "(B) 조용히 앉아 무언가를 배우거나 읽고 싶다", value: "B", tags: { axis8: "growth" } },
-          { label: "(C) 오랫동안 무시했던 중요한 사람에게 연락하고 싶다", value: "C", tags: { axis8: "relationship" } },
+          { label: "(C) 마음 한구석에 미뤄둔 소중한 사람에게 연락하고 싶다", value: "C", tags: { axis8: "relationship" } },
           { label: "(D) 평소 관심 있던 분야의 정보를 파고들고 싶다", value: "D", tags: { axis8: "finance" } },
           { label: "(E) 머릿속에 그려왔던 계획을 실행에 옮기고 싶다", value: "E", tags: { axis8: "contribution" } },
           { label: "(F) 특별히 하고 싶은 것 없이 편하게 보낸다", value: "F", tags: { axis8: "undecided" } }
@@ -787,7 +832,7 @@ const QUESTIONS = {
       { id: "Q20", type: "forced", part: "B2",
         text: "습관화 프로젝트를 마친 두 사람. 당신이 되고 싶은 쪽은?",
         options: [
-          { label: "(A) 체지방률 15%→10%를 달성. 하지만 운동은 아직 억지로 함",                           value: "A", axisScore: { axis4: 1 } },
+          { label: "(A) 체지방률 15%→10%를 달성. 목표를 이뤘으니 당분간 운동은 쉬고 싶다",              value: "A", axisScore: { axis4: 1 } },
           { label: "(B) 체지방률 15%→13%밖에 안 줄었지만, 운동이 안 하면 허전할 정도로 자연스러워졌다", value: "B", axisScore: { axis4: 5 } }
         ]
       },
@@ -824,7 +869,7 @@ const QUESTIONS = {
       { id: "Q24", type: "slider", part: "B2", axis: "axis6",
         text: "슬라이더를 움직여 주세요.",
         leftLabel: "달성할 수 있다는 확신이 있고, 계획대로 하면 반드시 이루는 도전",
-        rightLabel: "어떻게 이룰지 모르겠지만, 생각만 해도 잠이 안 오는 도전" },
+        rightLabel: "어떻게 이룰지 모르겠지만, 생각만 해도 가슴이 뛰는 도전" },
 
       // 축 7: 시간 감각 (Q25~Q29)
       { id: "Q25", type: "slider", part: "B2", axis: "axis7",
@@ -848,8 +893,8 @@ const QUESTIONS = {
       { id: "Q28", type: "forced", part: "B2",
         text: "습관화 프로젝트를 마친 두 사람.",
         options: [
-          { label: "(A) 투자 수익률 200%를 달성. 하지만 투자 공부가 아직 재미없다",                value: "A", axisScore: { axis7: 1 } },
-          { label: "(B) 수익률은 50%지만, 매일 경제 뉴스 보는 게 자연스러운 습관이 됐다",          value: "B", axisScore: { axis7: 5 } }
+          { label: "(A) 투자 수익률 200%를 달성. 목표를 이뤘으니 당분간 다른 영역에 집중하고 싶다", value: "A", axisScore: { axis7: 1 } },
+          { label: "(B) 수익률은 50%지만, 매일 경제 공부하는 게 자연스러운 습관이 됐다",         value: "B", axisScore: { axis7: 5 } }
         ]
       },
       { id: "Q29", type: "forced", part: "B2",
@@ -1000,7 +1045,7 @@ const QUESTIONS = {
         ]
       },
       { id: "Q42", type: "single", part: "C",
-        text: "이 방향을 떠올렸을 때 가장 먼저 보이는 장면은?",
+        text: "당신이 가장 포기할 수 없다고 답한 그 방향을 떠올렸을 때 가장 먼저 보이는 장면은?",
         options: [
           { label: "(A) 거울 속에서 달라진 내 모습",                    value: "A", tags: { visualize: "health" } },
           { label: "(B) 통장 잔고를 확인하며 미소 짓고 있다",             value: "B", tags: { visualize: "finance" } },
@@ -1306,7 +1351,7 @@ const QUESTIONS = {
       },
       { id: "E14", type: "single_adaptive", part: "E",
         adaptive: { source: "final_goal" },
-        text: "지금까지의 모든 과정을 거쳐, 당신이 가장 간절히 원하는 C형 목표는?"
+        text: "Phase 2 전체를 거치며 당신의 진짜 갈망에 가장 가까운 목표는?"
         // 옵션은 renderE14AdaptiveOptions에서 동적 생성 (4지/5지 분기)
       }
     ]
@@ -1430,7 +1475,7 @@ const ROUTE_QUESTIONS = {
         "text": "두 사람 중 당신이 되고 싶은 쪽은?",
         "options": [
           {
-            "label": "(A) 3개월 만에 눈에 띄는 변화를 만들었지만, 6개월 후 원래로 돌아갔다",
+            "label": "(A) 3개월 만에 눈에 띄는 변화를 만들고, 그 결과를 발판으로 다른 영역에 새로 도전한다",
             "value": "A"
           },
           {
@@ -1734,7 +1779,7 @@ const ROUTE_QUESTIONS = {
         "text": "두 사람 중 당신이 되고 싶은 쪽은?",
         "options": [
           {
-            "label": "(A) 3개월 만에 새로운 관점을 얻었지만 6개월 후 다시 예전 방식으로 돌아갔다",
+            "label": "(A) 3개월 만에 새로운 관점을 얻고, 그다음에 또 다른 마인드셋을 빠르게 탐색한다",
             "value": "A"
           },
           {
@@ -2038,7 +2083,7 @@ const ROUTE_QUESTIONS = {
         "text": "두 사람 중 당신이 되고 싶은 쪽은?",
         "options": [
           {
-            "label": "(A) 1년 만에 순자산 2배, 하지만 다시 반으로 줄었다",
+            "label": "(A) 1년 만에 순자산을 두 배로 늘리고, 그 자본으로 다음 기회에 빠르게 도전한다",
             "value": "A"
           },
           {
@@ -2342,7 +2387,7 @@ const ROUTE_QUESTIONS = {
         "text": "두 사람 중 당신이 되고 싶은 쪽은?",
         "options": [
           {
-            "label": "(A) 가족 여행 한 번으로 관계가 확 가까워졌지만 일상으로 돌아오니 원래대로다",
+            "label": "(A) 가족 여행 한 번으로 관계의 결정적 전환점을 만들고, 그 기억을 평생 가져간다",
             "value": "A"
           },
           {
@@ -4175,10 +4220,15 @@ function renderIntro() {
         <button id="resume-btn" class="btn btn-teal" style="height:40px;font-size:14px;">이어서 하기</button>
         <button id="restart-btn" class="btn btn-secondary" style="height:40px;font-size:14px;">처음부터</button>
       </div>
+      <p style="font-size:12px;color:var(--text-muted);margin:10px 0 0;line-height:1.5;">
+        이전에 답하신 내용이 자동으로 복원됩니다. 처음부터 다시 시작하시려면 '처음부터' 버튼을 눌러주세요.
+      </p>
     `;
     $('.intro').appendChild(resumeDiv);
     $('#resume-btn').addEventListener('click', () => {
       STATE.participantName = name;
+      // 이어하기 배너 표시 플래그 (renderQuestion 첫 호출 시 1회 표시)
+      try { sessionStorage.setItem('compass_resume_pending', '1'); } catch(e) {}
       // Phase 2 우선 복원, 없으면 Phase 1
       if (hasP2) {
         STATE.answers = savedP2.answers;
@@ -4360,6 +4410,40 @@ function renderQuestion(q, questionNum, totalNum) {
   // 이전 답변이 있으면 복원
   restoreAnswer(q);
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // "이어하기"로 진입한 직후 1회 배너 표시
+  showResumeBannerIfPending();
+}
+
+// 이어하기 배너 — 세션당 1회. 5초 후 자동 사라짐 + X 버튼
+function showResumeBannerIfPending() {
+  try {
+    if (sessionStorage.getItem('compass_resume_pending') !== '1') return;
+    sessionStorage.removeItem('compass_resume_pending');
+    if (sessionStorage.getItem('compass_resume_notice_shown') === '1') return;
+    sessionStorage.setItem('compass_resume_notice_shown', '1');
+  } catch (e) { return; }
+
+  // 기존 배너 있으면 제거
+  const existing = document.getElementById('resume-banner');
+  if (existing) existing.remove();
+
+  const banner = document.createElement('div');
+  banner.className = 'resume-banner';
+  banner.id = 'resume-banner';
+  banner.innerHTML = `
+    <span>이전 진행 지점부터 이어집니다. 일부 답변은 자동으로 복원되어 있을 수 있어요.</span>
+    <button class="resume-banner-close" type="button" aria-label="닫기">×</button>
+  `;
+  document.body.appendChild(banner);
+
+  const dismiss = () => {
+    if (!banner.parentNode) return;
+    banner.classList.add('fading');
+    setTimeout(() => { if (banner.parentNode) banner.parentNode.removeChild(banner); }, 350);
+  };
+  banner.querySelector('.resume-banner-close').addEventListener('click', dismiss);
+  setTimeout(dismiss, 5000);
 }
 
 function escapeHtml(s) {
@@ -4467,8 +4551,11 @@ function renderE14AdaptiveOptions(q) {
   const labelA = s.optionA_goal?.achievement_form || '아직 정해지지 않음 (OT에서 함께 정함)';
   const goalAId = s.optionA_goal?.id || null;
 
+  // (A) 옵션에 출처 힌트 추가 — 사용자에게 "이게 왜 여기 있는지" 명시
+  const hintA = goalAId ? '  ← 당신의 C형 목표' : '';
+
   const opts = [
-    { label: `(A) ${labelA}`, value: "A",
+    { label: `(A) ${labelA}${hintA}`, value: "A",
       tags: { goal_id: goalAId, source: s.optionA_source, confidence: 'committed' } }
   ];
 
@@ -4923,6 +5010,11 @@ function renderIB3() {
       <div class="d">${escapeHtml(desireDescMap[topDesire] || "당신만의 방향을 발견해가고 있습니다.")}</div>
     </div>
 
+    <p class="result-tip">
+      💡 <strong>결과 해석 팁</strong><br/>
+      이 진단은 당신이 시간을 쏟은 영역을 1위로 표시합니다. 만약 1위 영역이 이미 습관이 된 분야라면, '진짜 갈망'은 아직 행동으로 옮기지 못한 다른 영역에 있을 수도 있습니다. Phase 2에서 이 직관을 함께 검증합니다.
+    </p>
+
     <div class="summary-block">
       <div class="h">C형 수용도</div>
       <div class="t">${escapeHtml(ct.level)}</div>
@@ -5079,6 +5171,10 @@ function renderProfileSummary(axes, answers) {
   return `
     <div class="profile-summary">
       <div class="ps-title">당신의 프로필 요약</div>
+      <p class="ps-legend">
+        <strong>▲</strong> 강한 신호 (4.0 이상) · <strong>▼</strong> 약한 신호 (2.0 이하)<br/>
+        당신의 답변이 이 방향으로 명확히 기울어진 축입니다.
+      </p>
       ${itemsHtml}
     </div>
   `;
