@@ -263,7 +263,9 @@
     color: var(--navy); font-weight: 700; font-style: normal;
   }
   .ib-dark .ib-body strong, .ib-dark .ib-body em { color: #7FE3B9; }
-  .ib-actions { margin-top: 24px; }
+  .ib-actions { margin-top: 24px; text-align: center; }
+  .ib-actions .btn { display: block; width: 100%; max-width: 360px; margin: 0 auto 10px; }
+  .ib-actions .btn:last-of-type { margin-bottom: 0; }
 
   /* Match cards (IB2) */
   .match-cards {
@@ -329,6 +331,12 @@
     color: var(--text-muted); letter-spacing: 0.08em;
     text-transform: uppercase; margin-bottom: 14px;
   }
+  .profile-summary .ps-legend {
+    font-size: 13px; color: var(--text-secondary);
+    line-height: 1.55; margin: 0 0 14px;
+    padding-bottom: 12px; border-bottom: 1px dashed var(--border);
+  }
+  .profile-summary .ps-legend strong { color: var(--navy); font-weight: 700; }
   .profile-summary .ps-item {
     display: flex; flex-direction: column; gap: 4px;
     padding: 12px 0; border-bottom: 1px solid var(--border);
@@ -5163,6 +5171,10 @@ function renderProfileSummary(axes, answers) {
   return `
     <div class="profile-summary">
       <div class="ps-title">당신의 프로필 요약</div>
+      <p class="ps-legend">
+        <strong>▲</strong> 강한 신호 (4.0 이상) · <strong>▼</strong> 약한 신호 (2.0 이하)<br/>
+        당신의 답변이 이 방향으로 명확히 기울어진 축입니다.
+      </p>
       ${itemsHtml}
     </div>
   `;
