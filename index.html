@@ -400,6 +400,34 @@
     padding: 4px 10px; border-radius: 6px; margin-bottom: 8px;
   }
 
+  /* 이어하기 배너 (1회 표시, 5초 자동 사라짐) */
+  .resume-banner {
+    position: fixed; top: 8px; left: 50%;
+    transform: translateX(-50%);
+    background: #FFFBEB; color: #78350F;
+    padding: 10px 14px 10px 16px; border-radius: 12px;
+    font-size: 13px; line-height: 1.5;
+    border: 1px solid #FBBF24;
+    max-width: calc(100vw - 24px); width: max-content;
+    z-index: 1000;
+    box-shadow: 0 4px 16px rgba(245,158,11,.22);
+    display: flex; align-items: center; gap: 10px;
+    animation: bannerIn .35s cubic-bezier(.22,1,.36,1);
+  }
+  .resume-banner.fading { animation: bannerOut .35s ease forwards; }
+  .resume-banner-close {
+    background: transparent; border: none; cursor: pointer;
+    color: #92400E; padding: 4px 6px; flex-shrink: 0;
+    font-size: 18px; line-height: 1; font-weight: 700;
+  }
+  @keyframes bannerIn {
+    from { opacity: 0; transform: translate(-50%, -10px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+  }
+  @keyframes bannerOut {
+    to { opacity: 0; transform: translate(-50%, -10px); }
+  }
+
   /* IB#5 일치도 미터 */
   .consistency-meter {
     background: var(--white); border-radius: 14px;
@@ -4175,10 +4203,15 @@ function renderIntro() {
         <button id="resume-btn" class="btn btn-teal" style="height:40px;font-size:14px;">이어서 하기</button>
         <button id="restart-btn" class="btn btn-secondary" style="height:40px;font-size:14px;">처음부터</button>
       </div>
+      <p style="font-size:12px;color:var(--text-muted);margin:10px 0 0;line-height:1.5;">
+        이전에 답하신 내용이 자동으로 복원됩니다. 처음부터 다시 시작하시려면 '처음부터' 버튼을 눌러주세요.
+      </p>
     `;
     $('.intro').appendChild(resumeDiv);
     $('#resume-btn').addEventListener('click', () => {
       STATE.participantName = name;
+      // 이어하기 배너 표시 플래그 (renderQuestion 첫 호출 시 1회 표시)
+      try { sessionStorage.setItem('compass_resume_pending', '1'); } catch(e) {}
       // Phase 2 우선 복원, 없으면 Phase 1
       if (hasP2) {
         STATE.answers = savedP2.answers;
@@ -4360,6 +4393,40 @@ function renderQuestion(q, questionNum, totalNum) {
   // 이전 답변이 있으면 복원
   restoreAnswer(q);
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // "이어하기"로 진입한 직후 1회 배너 표시
+  showResumeBannerIfPending();
+}
+
+// 이어하기 배너 — 세션당 1회. 5초 후 자동 사라짐 + X 버튼
+function showResumeBannerIfPending() {
+  try {
+    if (sessionStorage.getItem('compass_resume_pending') !== '1') return;
+    sessionStorage.removeItem('compass_resume_pending');
+    if (sessionStorage.getItem('compass_resume_notice_shown') === '1') return;
+    sessionStorage.setItem('compass_resume_notice_shown', '1');
+  } catch (e) { return; }
+
+  // 기존 배너 있으면 제거
+  const existing = document.getElementById('resume-banner');
+  if (existing) existing.remove();
+
+  const banner = document.createElement('div');
+  banner.className = 'resume-banner';
+  banner.id = 'resume-banner';
+  banner.innerHTML = `
+    <span>이전 진행 지점부터 이어집니다. 일부 답변은 자동으로 복원되어 있을 수 있어요.</span>
+    <button class="resume-banner-close" type="button" aria-label="닫기">×</button>
+  `;
+  document.body.appendChild(banner);
+
+  const dismiss = () => {
+    if (!banner.parentNode) return;
+    banner.classList.add('fading');
+    setTimeout(() => { if (banner.parentNode) banner.parentNode.removeChild(banner); }, 350);
+  };
+  banner.querySelector('.resume-banner-close').addEventListener('click', dismiss);
+  setTimeout(dismiss, 5000);
 }
 
 function escapeHtml(s) {
