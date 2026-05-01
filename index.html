@@ -1124,6 +1124,7 @@ const QUESTIONS = {
     partF: [
       // ====== 1겹: Phase 1 행동 데이터 교차 ======
       { id: "F1", type: "single", part: "F",
+        condition: { questionId: "QB1", valueNot: "F" },
         text: "Phase 1에서 당신이 실제로 가장 많은 시간을 쓴 활동은 [QB1 결과]였습니다. 지금 세우려는 목표와 관련이 있나요?",
         options: [
           { label: "(A) 직접적으로 관련 있다 — 이미 행동으로 옮기고 있었다", value: "A", tags: { consistency: 1.0 } },
@@ -1133,6 +1134,7 @@ const QUESTIONS = {
         ]
       },
       { id: "F2", type: "single", part: "F",
+        condition: { questionId: "QB2", valueNot: "F" },
         text: "Phase 1에서 당신이 가장 자주 소비한 콘텐츠는 [QB2 결과] 분야였습니다. 지금 세우려는 목표와의 관계는?",
         options: [
           { label: "(A) 같은 분야다 — 관심이 일관된다",                    value: "A", tags: { consistency: 1.0 } },
@@ -1142,6 +1144,7 @@ const QUESTIONS = {
         ]
       },
       { id: "F3", type: "single", part: "F",
+        condition: { questionId: "QB3", valueNot: "F" },
         text: "Phase 1에서 당신이 가장 오래 고민한 주제는 [QB3 결과]였습니다. 이것과 C형 목표의 관계는?",
         options: [
           { label: "(A) 바로 이 고민을 해결하는 것이 내 목표다",          value: "A", tags: { consistency: 1.0 } },
@@ -1151,6 +1154,7 @@ const QUESTIONS = {
         ]
       },
       { id: "F4", type: "single", part: "F",
+        condition: { questionId: "QB4", valueNot: "F" },
         text: "Phase 1에서 당신이 충동적으로 돈을 쓴 분야는 [QB4 결과]였습니다. 지금 목표와 같은 분야인가요?",
         options: [
           { label: "(A) 같은 분야다",                value: "A", tags: { consistency: 1.0 } },
@@ -3645,15 +3649,19 @@ function buildPhase2Order(answers, route) {
     ROUTE_QUESTIONS[route].stage3.forEach(q => order.push({ ...q, part: "D_stage3" }));
   }
 
-  // Part F (12문항, F8은 F7=B 조건부)
+  // Part F (F8은 F7=B 조건부 / F1~F4는 QB1~QB4가 (F) 답변이 아닐 때만 표시)
   (QUESTIONS.phase2.partF || []).forEach(q => {
     if (q.condition) {
       const cond = q.condition;
       const ans = answers?.[cond.questionId];
-      if (ans?.value === cond.value) {
-        order.push({ ...q, part: "F" });
+      let shouldInclude = true;
+      if ('valueNot' in cond) {
+        // 답변이 valueNot과 다를 때만 포함 (미응답이면 기본 포함)
+        shouldInclude = !ans || ans.value !== cond.valueNot;
+      } else if ('value' in cond) {
+        shouldInclude = ans?.value === cond.value;
       }
-      // 조건 미충족이면 스킵 (예: F7=A 일 때 F8 미포함)
+      if (shouldInclude) order.push({ ...q, part: "F" });
     } else {
       order.push({ ...q, part: "F" });
     }
@@ -3829,7 +3837,9 @@ function replacePlaceholders(template, state) {
     '[Q36 결과]': stripOptionPrefix(a.Q36?.label),
     '[Q37 결과]': stripOptionPrefix(a.Q37?.label)
   };
-  const topArea = getTopArea(a, ['Q1','Q2','Q3','Q4','Q5','Q6','Q7','QB1','QB2','QB3','QB4','QB5']);
+  // [축 8 결과] = 갈망 1위. IB#3 'topDesire'와 동일하게 토너먼트 우선 → 카운트 폴백
+  const topArea = state.tournament?.winners?.final
+                || getTopArea(a, ['Q1','Q2','Q3','Q4','Q5','Q6','Q7','QB1','QB2','QB3','QB4','QB5']);
   subs['[축 8 결과]'] = (topArea && AREA_LABELS[topArea]) ? AREA_LABELS[topArea] : '아직 정해지지 않은 영역';
 
   // 위치별 교체 + 직후 조사 보정
