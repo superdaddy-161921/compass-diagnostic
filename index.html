@@ -445,6 +445,22 @@
     border-left: 3px solid var(--teal);
   }
 
+  /* E14 C형 목표 카드 (옵션 본문 위 분리 표시) */
+  .e14-goal-card {
+    background: var(--teal-light); border-radius: 12px;
+    padding: 14px 16px; margin: 0 0 16px;
+    border-left: 3px solid var(--teal);
+  }
+  .e14-goal-card .e14-goal-label {
+    font-size: 12px; color: var(--teal-dark);
+    font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+  .e14-goal-card .e14-goal-text {
+    font-size: 16px; color: var(--navy);
+    font-weight: 700; line-height: 1.45;
+  }
+
   /* IB#3 결과 해석 팁 (영역 측정 한계 안내) */
   .result-tip {
     font-size: 14px; color: var(--text-muted);
@@ -4638,11 +4654,9 @@ function renderE14AdaptiveOptions(q) {
   const labelA = s.optionA_goal?.achievement_form || '아직 정해지지 않음 (OT에서 함께 정함)';
   const goalAId = s.optionA_goal?.id || null;
 
-  // (A) 옵션에 출처 힌트 추가 — 사용자에게 "이게 왜 여기 있는지" 명시
-  const hintA = goalAId ? '  ← 당신의 C형 목표' : '';
-
+  // (A) 옵션 — 힌트 라벨 제거, 별도 카드로 본문 위에 분리 표시 (#32)
   const opts = [
-    { label: `(A) ${labelA}${hintA}`, value: "A",
+    { label: `(A) ${labelA}`, value: "A",
       tags: { goal_id: goalAId, source: s.optionA_source, confidence: 'committed' } }
   ];
 
@@ -4675,8 +4689,19 @@ function renderE14AdaptiveOptions(q) {
     tags: { goal_id: null, source: 'undecided', confidence: 'unsure', extra_explore: true }
   });
 
+  // 별도 C형 목표 카드 (옵션 본문 위에 분리 표시 — #32)
+  let goalCardHtml = '';
+  if (goalAId && s.optionA_goal) {
+    goalCardHtml = `
+      <div class="e14-goal-card">
+        <div class="e14-goal-label">당신의 C형 목표 후보</div>
+        <div class="e14-goal-text">${escapeHtml(s.optionA_goal.achievement_form)}</div>
+      </div>
+    `;
+  }
+
   q._dynamicOptions = opts;
-  return renderOptions(opts, q.id);
+  return goalCardHtml + renderOptions(opts, q.id);
 }
 
 function restoreAnswer(q) {
