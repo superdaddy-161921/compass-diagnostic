@@ -436,6 +436,15 @@
     to { opacity: 0; transform: translate(-50%, -10px); }
   }
 
+  /* E13·E14 적응형 옵션 안내 */
+  .adaptive-hint {
+    background: #F1F8F4; color: var(--teal-dark);
+    padding: 10px 12px; border-radius: 10px;
+    font-size: 13px; line-height: 1.5; font-weight: 500;
+    margin: 0 0 12px;
+    border-left: 3px solid var(--teal);
+  }
+
   /* IB#3 결과 해석 팁 (영역 측정 한계 안내) */
   .result-tip {
     font-size: 14px; color: var(--text-muted);
@@ -1185,18 +1194,18 @@ const QUESTIONS = {
       { id: "F7", type: "forced", part: "F",
         text: "Phase 1에서 당신의 갈망 프로필 1위는 [축 8 결과]였습니다. 지금 C형 목표 후보와 일치하나요?",
         options: [
-          { label: "(A) 일치한다 — 같은 영역이다",                  value: "A", tags: { consistency: 1.0 } },
-          { label: "(B) 다르다 — C형 목표가 다른 영역에서 나왔다",   value: "B", tags: { consistency: 0.0 } }
+          { label: "(A) 일치한다 — 같은 영역이다",                                value: "A", tags: { consistency: 1.0 } },
+          { label: "(B) 다르다 — 또는 아직 C형 목표가 명확하지 않다",              value: "B", tags: { consistency: 0.0 } }
         ]
       },
       { id: "F8", type: "single", part: "F",
         condition: { questionId: "F7", value: "B" }, // F7=B일 때만 표시
         text: "어느 쪽이 당신의 진짜 갈망에 더 가까운가요?",
         options: [
-          { label: "(A) Phase 1에서 나온 방향이 더 진짜다",          value: "A", tags: { consistency: 0.0, extra_explore: true } },
-          { label: "(B) Phase 2에서 나온 C형 목표가 더 진짜다",      value: "B", tags: { consistency: 1.0 } },
-          { label: "(C) 둘 다 중요하다 — 연결되어 있다",             value: "C", tags: { consistency: 0.5 } },
-          { label: "(D) 솔직히 모르겠다",                             value: "D", tags: { consistency: 0.0, extra_explore: true } }
+          { label: "(A) Phase 1 갈망([축 8 결과]) 방향이 더 진짜다",        value: "A", dynamicLabel: true, tags: { consistency: 0.0, extra_explore: true } },
+          { label: "(B) Phase 2 C형 목표([D20 선택 결과])가 더 진짜다",     value: "B", dynamicLabel: true, tags: { consistency: 1.0 } },
+          { label: "(C) 둘 다 중요하다 — 연결되어 있다",                   value: "C", tags: { consistency: 0.5 } },
+          { label: "(D) 솔직히 모르겠다",                                   value: "D", tags: { consistency: 0.0, extra_explore: true } }
         ]
       },
 
@@ -3842,6 +3851,17 @@ function replacePlaceholders(template, state) {
                 || getTopArea(a, ['Q1','Q2','Q3','Q4','Q5','Q6','Q7','QB1','QB2','QB3','QB4','QB5']);
   subs['[축 8 결과]'] = (topArea && AREA_LABELS[topArea]) ? AREA_LABELS[topArea] : '아직 정해지지 않은 영역';
 
+  // [D20 선택 결과] = 사용자가 D20에서 고른 C형 목표 본문 (없으면 placeholder 메시지)
+  const route = state.route;
+  let d20Goal = null;
+  if (route && typeof GOAL_POOL !== 'undefined') {
+    const d20Ans = a[`D20-${route}`];
+    if (d20Ans?.tags?.goal_id) {
+      d20Goal = GOAL_POOL.goals.find(g => g.id === d20Ans.tags.goal_id);
+    }
+  }
+  subs['[D20 선택 결과]'] = d20Goal?.achievement_form || '아직 정해지지 않은 목표';
+
   // 위치별 교체 + 직후 조사 보정
   const placeholders = Object.keys(subs);
   // 패턴: |placeholder + 어절경계 없는 조사
@@ -4412,7 +4432,14 @@ function renderQuestion(q, questionNum, totalNum) {
 
   // 타입별 본문
   if (q.type === 'single' || q.type === 'forced') {
-    body += renderOptions(q.options, q.id);
+    // F-part 동적 옵션 라벨 (dynamicLabel: true 마커 보유 시 치환)
+    let renderOpts = q.options;
+    if (q.part === 'F' && q.options?.some(o => o.dynamicLabel)) {
+      renderOpts = q.options.map(o => o.dynamicLabel
+        ? { ...o, label: replacePlaceholders(o.label, STATE) }
+        : o);
+    }
+    body += renderOptions(renderOpts, q.id);
   } else if (q.type === 'slider') {
     body += renderSlider(q);
   } else if (q.type === 'tournament') {
@@ -4587,6 +4614,8 @@ function renderE13AdaptiveOptions(q) {
   const labelA = altA ? altA.achievement_form : '같은 루트의 다른 형태 (후보 부족)';
   const labelB = altB ? altB.achievement_form : '다른 영역의 후보 (후보 부족)';
 
+  const hintHtml = `<p class="adaptive-hint">💡 후보가 마음에 들지 않으면 (D) 또는 (E)를 선택해주세요. OT에서 함께 다듬어가겠습니다.</p>`;
+
   const opts = [
     { label: `(A) ${labelA}`, value: "A",
       tags: { e13_choice: "altA", goal_id: altA?.id || null } },
@@ -4600,7 +4629,7 @@ function renderE13AdaptiveOptions(q) {
       tags: { e13_choice: "both", extra_explore: true } }
   ];
   q._dynamicOptions = opts;
-  return renderOptions(opts, q.id);
+  return hintHtml + renderOptions(opts, q.id);
 }
 
 // E14 적응형 옵션 렌더 (4지/5지 — E13 결과에 따라 (B) 동적 추가)
