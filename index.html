@@ -3875,22 +3875,47 @@ function replacePlaceholders(template, state) {
   return out;
 }
 
-// v3 Section 15-2: D20 적응형 매칭
+// v3 Section 15-2: D20 적응형 매칭 (4단 폴백)
 function matchGoalsForD20(answers, route) {
+  if (typeof GOAL_POOL === 'undefined' || !GOAL_POOL.goals?.length) return [];
+
+  // 1차 풀: 해당 루트 (정상 케이스)
   let pool = GOAL_POOL.goals.filter(g => g.route === route);
+
+  // 폴백 1: route 무효(null/undefined) → 모든 루트의 범용 후보로 풀 구성
+  if (pool.length === 0) {
+    pool = GOAL_POOL.goals.filter(g => g.attribute_combo === '범용');
+  }
+
   const d6 = answers[`D6-${route}`]?.value;
   const d7 = answers[`D7-${route}`]?.value;
   const d8 = answers[`D8-${route}`]?.value;
   const combo = `${d6}-${d7}-${d8}`;
+
+  // 2차: combo 정확 매칭
   let matched = pool.filter(g => g.attribute_combo === combo);
+
+  // 폴백 2 (v3 spec): matched < 4 → 같은 풀 범용 후보 추가
   if (matched.length < 4) {
     const generic = pool.filter(g => g.attribute_combo === '범용');
     matched = matched.concat(generic);
   }
+
+  // 폴백 3: matched < 3 → 같은 풀의 나머지 후보 추가 (combo 다름)
+  if (matched.length < 3) {
+    const remaining = pool.filter(g => !matched.includes(g));
+    matched = matched.concat(remaining);
+  }
+
+  // 폴백 4 (최후): matched < 3 → GOAL_POOL 전체에서 보충
+  if (matched.length < 3) {
+    const allOthers = GOAL_POOL.goals.filter(g => !matched.includes(g));
+    matched = matched.concat(allOthers);
+  }
+
   const d11 = answers[`D11-${route}`]?.sliderValue ?? 3;
   const d15 = answers[`D15-${route}`]?.sliderValue ?? 3;
   const preferH = (d11 + d15) >= 7;
-  // Stable sort with both args considered
   matched.sort((a, b) => {
     const aPref = (preferH ? a.intensity === 'H' : a.intensity === 'M') ? 0 : 1;
     const bPref = (preferH ? b.intensity === 'H' : b.intensity === 'M') ? 0 : 1;
