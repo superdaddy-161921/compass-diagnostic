@@ -1288,6 +1288,15 @@ const QUESTIONS = {
           { label: "(C) 약간 흔들린다",                value: "C", tags: { consistency: 0.33 } },
           { label: "(D) 다른 것이 더 맞는 것 같다",     value: "D", tags: { consistency: 0.0, extra_explore: true } }
         ]
+      },
+      { id: "F13", type: "single", part: "F",
+        text: "진단 결과 당신의 갈망 1위는 [축 8 결과]였습니다. 당신이 직접 느끼기에 이게 진짜 맞나요? (1위가 이미 습관 된 영역일 수도 있어서, 한 번 더 확인합니다)",
+        options: [
+          { label: "(A) 맞다 — 이게 진짜 1위다",                          value: "A", tags: { axis8_verify: "confirmed" } },
+          { label: "(B) 다르다 — 사실 더 마음 가는 영역이 있다",            value: "B", tags: { axis8_verify: "different", extra_explore: true } },
+          { label: "(C) 비슷하지만 1위는 약간 다른 영역인 것 같다",         value: "C", tags: { axis8_verify: "adjusted" } },
+          { label: "(D) 솔직히 잘 모르겠다",                              value: "D", tags: { axis8_verify: "unsure" } }
+        ]
       }
     ],
 
@@ -5871,6 +5880,19 @@ function renderIBPostPartE() {
     ? `<div class="extra-explore-note">일부 답변에 더 살펴볼 신호가 있습니다 (<strong>${extraE}개 영역</strong>). OT에서 더 깊이 다룹니다.</div>`
     : '';
 
+  // F13 axis8 사용자 검증 표시
+  const f13verify = STATE.answers.F13?.tags?.axis8_verify;
+  const verifyMsgMap = {
+    different: '사용자 직접 수정 영역 있음 — OT에서 진짜 1위 영역을 함께 정합니다.',
+    adjusted:  '재검토 필요 — OT에서 1위 영역을 다듬습니다.',
+    unsure:    '아직 모르겠다는 솔직한 답입니다 — OT에서 함께 찾아갑니다.'
+  };
+  const verifyHtml = (f13verify && verifyMsgMap[f13verify])
+    ? `<div class="extra-explore-note" style="background:#FFF7E6;border-left-color:var(--gold);">
+         <strong>갈망 영역 사용자 검증:</strong> ${escapeHtml(verifyMsgMap[f13verify])}
+       </div>`
+    : '';
+
   const html = `
     ${goalCardHtml}
     ${identityHtml}
@@ -5878,6 +5900,7 @@ function renderIBPostPartE() {
     ${passionMsgHtml}
     ${e12msgHtml}
     ${extraMsgHtml}
+    ${verifyHtml}
     <p class="ib-body" style="margin-top:18px;">
       <strong>Phase 2가 마무리되었습니다.</strong> 다음은 <em>Phase 3</em> — 100일 동안의 실행 계획을 그려갑니다.
     </p>
