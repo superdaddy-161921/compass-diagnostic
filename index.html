@@ -997,15 +997,21 @@ const QUESTIONS = {
 
     partB1: [
       { id: "QB1", type: "single", part: "B1",
-        text: "지난 한 주간, 순수하게 '내가 하고 싶어서' 시간을 쓴 활동은? (가장 많은 시간을 쓴 것 하나만 선택)",
+        text: "지난 한 주간 시간을 가장 많이 쓴 활동은? (한 가지만 선택)",
         options: [
           { label: "(A) 운동, 건강 관리",                    value: "A", tags: { axis8: "health" } },
           { label: "(B) 독서, 공부, 자기계발",                value: "B", tags: { axis8: "growth" } },
           { label: "(C) 투자 공부, 재테크 관련 활동",         value: "C", tags: { axis8: "finance" } },
           { label: "(D) 가족이나 소중한 사람과 보내는 시간",   value: "D", tags: { axis8: "relationship" } },
           { label: "(E) 취미나 창작 활동",                    value: "E", tags: { axis8: "contribution" } },
+          { label: "(G) 직장/업무",                          value: "G", tags: { axis8: "growth" } },
           { label: "(F) 딱히 없다",                          value: "F", tags: { axis8: "none" } }
         ]
+      },
+      { id: "QB1B", type: "slider", part: "B1",
+        text: "그 활동에 자발적으로 임했나요?",
+        leftLabel: "완전히 강제로 (피할 수 없어서)",
+        rightLabel: "완전히 자발적으로 (내가 원해서)"
       },
       { id: "QB2", type: "single", part: "B1",
         text: "요즘 유튜브, SNS에서 가장 자주 찾아보는 콘텐츠는?",
@@ -3756,7 +3762,7 @@ function buildPhase1Order(answers) {
 }
 
 function getPhase1TotalCount() {
-  let n = 12 + 25 + 1 + 5 + 5; // partA(12) + partB2(25) + MC1 + partB1(5) + partC(5)
+  let n = 12 + 25 + 1 + 6 + 5; // partA(12) + partB2(25) + MC1 + partB1(6: QB1+QB1B+QB2~QB5) + partC(5)
   if (STATE.answers?.Q10?.value === "A") n += 1; // Q10-1
   return n;
 }
@@ -3839,6 +3845,12 @@ function calculateAreaCounts(answers, qIds) {
   qIds.forEach(id => {
     const ans = answers[id];
     if (!ans?.tags) return;
+    // QB1 직장/업무(G) 응답 + QB1B 자발성 ≤ 2 → axis8 카운트에서 제외
+    // (강제로 하는 직장은 갈망 영역으로 간주하지 않음)
+    if (id === 'QB1' && ans.value === 'G') {
+      const v = answers['QB1B']?.sliderValue;
+      if (typeof v === 'number' && v <= 2) return;
+    }
     const area = ans.tags.axis8;
     if (area && counts.hasOwnProperty(area)) counts[area]++;
   });
@@ -3936,7 +3948,7 @@ function buildD1Text(state) {
 
 // "(A) 운동, 건강 관리" → "운동, 건강 관리"
 function stripOptionPrefix(label) {
-  return (label || '').replace(/^\([A-E]\)\s*/, '').trim();
+  return (label || '').replace(/^\([A-Z]\)\s*/, '').trim();
 }
 
 // 한국어 받침 검사: 마지막 글자에 종성 있으면 true
