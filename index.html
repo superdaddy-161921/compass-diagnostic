@@ -549,6 +549,34 @@
     .ib-keyword { font-size: 44px; }
     .ib-title { font-size: 19px; }
   }
+
+  /* PC CTA 시각 무게감 강화 (#38)
+     - PC에서 버튼이 얇게 느껴지는 문제 해결
+     - 모바일 (≤ 640px)은 기존 사이즈 유지 */
+  @media (min-width: 641px) {
+    .btn {
+      height: 56px;
+      padding: 0 28px;
+      font-size: 17px;
+    }
+    .btn-primary {
+      box-shadow: 0 2px 8px rgba(27, 42, 74, 0.18);
+    }
+    .btn-primary:hover:not(:disabled) {
+      box-shadow: 0 4px 14px rgba(27, 42, 74, 0.28);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      border-width: 2px;
+      border-color: var(--text-secondary);
+      color: var(--navy);
+    }
+    .btn-secondary:hover {
+      border-color: var(--navy);
+      background: var(--bg-soft, #f5f7fa);
+    }
+    .btn-ghost { height: 44px; font-size: 15px; }
+  }
 </style>
 </head>
 
