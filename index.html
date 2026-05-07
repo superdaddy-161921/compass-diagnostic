@@ -4375,14 +4375,64 @@ function resumePhase2() {
     if (!STATE.answers[order[i].id]) { resumeIdx = i; break; }
   }
   if (resumeIdx >= order.length) {
-    // 모든 Phase 2 응답 완료 → IB#6 자동 표시 (Phase 2 최종)
-    return renderIBPostPartE();
+    // 모든 Phase 2 응답이 채워진 경우 — 정상 완료 vs 중간 이탈 분기
+    const savedP2 = load('compass_phase2');
+    if (savedP2?.completedAt) {
+      // 정상 완료 케이스: IB#6 자동 표시
+      return renderIBPostPartE();
+    }
+    // 중간 이탈 케이스: 사용자에게 선택 모달 제공
+    return showPhase2ResumeModal(order);
   }
   const q = order[resumeIdx];
   STATE.currentPart = q.part;
   const partOrder = order.filter(x => x.part === q.part);
   STATE.currentIndex = partOrder.findIndex(x => x.id === q.id);
   renderCurrentQuestion();
+}
+
+function showPhase2ResumeModal(order) {
+  setProgress(null);
+  gaEvent('compass_phase2_resume_modal_shown');
+  const overlay = document.createElement('div');
+  overlay.className = 'ib';
+  overlay.innerHTML = `
+    <div class="ib-inner">
+      <div class="ib-label">이어하기</div>
+      <h2 class="ib-title">Phase 2 답변이 모두 있어요</h2>
+      <p class="ib-body">결과 페이지로 갈지, 마지막 답변 위치로 돌아가서 검토할지, 또는 처음부터 다시 살펴볼지 선택해주세요.</p>
+      <div class="ib-actions" style="display:flex;flex-direction:column;gap:10px;">
+        <button class="btn btn-primary" id="resume-modal-result">결과 페이지로 이동</button>
+        <button class="btn btn-secondary" id="resume-modal-last">마지막 답변 위치로 이동</button>
+        <button class="btn btn-ghost" id="resume-modal-restart">처음부터 검토</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  window.scrollTo({ top: 0 });
+
+  overlay.querySelector('#resume-modal-result').addEventListener('click', () => {
+    gaEvent('compass_phase2_resume_modal_choice', { choice: 'result' });
+    overlay.remove();
+    renderIBPostPartE();
+  });
+  overlay.querySelector('#resume-modal-last').addEventListener('click', () => {
+    gaEvent('compass_phase2_resume_modal_choice', { choice: 'last' });
+    overlay.remove();
+    const lastQ = order[order.length - 1];
+    STATE.currentPart = lastQ.part;
+    const partOrder = order.filter(x => x.part === lastQ.part);
+    STATE.currentIndex = partOrder.findIndex(x => x.id === lastQ.id);
+    renderCurrentQuestion();
+  });
+  overlay.querySelector('#resume-modal-restart').addEventListener('click', () => {
+    gaEvent('compass_phase2_resume_modal_choice', { choice: 'restart' });
+    overlay.remove();
+    const firstQ = order[0];
+    STATE.currentPart = firstQ.part;
+    STATE.currentIndex = 0;
+    renderCurrentQuestion();
+  });
 }
 
 /* ---------- 8. 렌더링: 질문 ---------- */
