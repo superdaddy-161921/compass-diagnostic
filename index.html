@@ -1535,6 +1535,60 @@ const ANCHORS = {
   }
 };
 
+// 행동 확인 (GA1~GA5) — 각 영역의 실제 행동 빈도, 앵커 1/3/5/7/10 1:1 대응
+const GA_QUESTIONS = [
+  { id: "GA1", type: "single", part: "G", area: "health",
+    text: "현재 일주일에 의도적으로 몸을 움직이는 횟수는?",
+    options: [
+      { label: "(A) 0회",        value: "A", tags: { ga_anchor: 1 } },
+      { label: "(B) 1회",        value: "B", tags: { ga_anchor: 3 } },
+      { label: "(C) 2~3회",      value: "C", tags: { ga_anchor: 5 } },
+      { label: "(D) 4~5회",      value: "D", tags: { ga_anchor: 7 } },
+      { label: "(E) 거의 매일",   value: "E", tags: { ga_anchor: 10 } }
+    ]
+  },
+  { id: "GA2", type: "single", part: "G", area: "finance",
+    text: "현재 월 수입 중 저축·투자에 쓰는 비율은?",
+    options: [
+      { label: "(A) 0%",          value: "A", tags: { ga_anchor: 1 } },
+      { label: "(B) 1~10%",       value: "B", tags: { ga_anchor: 3 } },
+      { label: "(C) 11~20%",      value: "C", tags: { ga_anchor: 5 } },
+      { label: "(D) 21~30%",      value: "D", tags: { ga_anchor: 7 } },
+      { label: "(E) 30% 이상",    value: "E", tags: { ga_anchor: 10 } }
+    ]
+  },
+  { id: "GA3", type: "single", part: "G", area: "growth",
+    text: "최근 한 달간 배운 것을 실제 삶에 적용한 경험은?",
+    options: [
+      { label: "(A) 없음",            value: "A", tags: { ga_anchor: 1 } },
+      { label: "(B) 1회",             value: "B", tags: { ga_anchor: 3 } },
+      { label: "(C) 2~3회",           value: "C", tags: { ga_anchor: 5 } },
+      { label: "(D) 4~5회",           value: "D", tags: { ga_anchor: 7 } },
+      { label: "(E) 거의 매일 적용",   value: "E", tags: { ga_anchor: 10 } }
+    ]
+  },
+  { id: "GA4", type: "single", part: "G", area: "relationship",
+    text: "가장 소중한 사람과 서로의 마음을 나누는 대화를 하는 빈도는?",
+    options: [
+      { label: "(A) 거의 없음",   value: "A", tags: { ga_anchor: 1 } },
+      { label: "(B) 월 1~2회",    value: "B", tags: { ga_anchor: 3 } },
+      { label: "(C) 주 1회",      value: "C", tags: { ga_anchor: 5 } },
+      { label: "(D) 주 2~3회",    value: "D", tags: { ga_anchor: 7 } },
+      { label: "(E) 거의 매일",   value: "E", tags: { ga_anchor: 10 } }
+    ]
+  },
+  { id: "GA5", type: "single", part: "G", area: "contribution",
+    text: "최근 한 달간 누군가의 성장이나 변화에 의미 있는 도움을 준 경험은?",
+    options: [
+      { label: "(A) 없음",         value: "A", tags: { ga_anchor: 1 } },
+      { label: "(B) 1회",          value: "B", tags: { ga_anchor: 3 } },
+      { label: "(C) 2~3회",        value: "C", tags: { ga_anchor: 5 } },
+      { label: "(D) 4~5회",        value: "D", tags: { ga_anchor: 7 } },
+      { label: "(E) 정기적으로",   value: "E", tags: { ga_anchor: 10 } }
+    ]
+  }
+];
+
 /* ---------- Phase 2 루트별 문항 (v3.1, 60문항) ---------- */
 const ROUTE_QUESTIONS = {
   "A": {
@@ -3949,6 +4003,43 @@ function buildPhase2Order(answers, route) {
   return order;
 }
 
+/* ---------- Phase 3 진행 순서 ----------
+   순서: G1·G2 → GA1 → G3·G4 → GA2 → G5·G6 → GA3 → G7·G8 → GA4 → G9·G10 → GA5
+         → (G11·G12, C3에서 추가)
+         → IB#7 → Part H (H1~H6) → IB#8
+*/
+function buildPhase3Order(answers) {
+  const order = [];
+  const gByArea = {};
+  PHASE3_G_SLIDERS.forEach(q => {
+    (gByArea[q.area] = gByArea[q.area] || []).push(q);
+  });
+  const gaByArea = {};
+  GA_QUESTIONS.forEach(q => { gaByArea[q.area] = q; });
+
+  // 영역 순서: health → finance → growth → relationship → contribution
+  ['health','finance','growth','relationship','contribution'].forEach(area => {
+    (gByArea[area] || []).forEach(q => order.push({ ...q, part: 'G' }));
+    if (gaByArea[area]) order.push({ ...gaByArea[area], part: 'G' });
+  });
+
+  // Part G 성찰 (G11·G12) — 다음 commit 에서 typeof 가드로 추가
+  if (typeof PHASE3_G_REFLECTION !== 'undefined' && Array.isArray(PHASE3_G_REFLECTION)) {
+    PHASE3_G_REFLECTION.forEach(q => order.push({ ...q, part: 'G' }));
+  }
+
+  // Part H (H1~H6) — 다음 commit 에서 typeof 가드로 추가
+  if (typeof PHASE3_H !== 'undefined' && Array.isArray(PHASE3_H)) {
+    PHASE3_H.forEach(q => order.push({ ...q, part: 'H' }));
+  }
+
+  return order;
+}
+
+function getPhase3TotalCount() {
+  return buildPhase3Order(STATE.answers || {}).length;
+}
+
 /* ---------- 4. 유틸 ---------- */
 const $ = (sel) => document.querySelector(sel);
 
@@ -4596,17 +4687,20 @@ function renderIntro() {
     renderCurrentQuestion();
   });
 
-  // 재시작 옵션 — Phase 1 또는 Phase 2 저장 데이터 있으면 안내
+  // 재시작 옵션 — Phase 1·2·3 저장 데이터 있으면 안내
   const savedP1 = load('compass_phase1');
   const savedP2 = load('compass_phase2');
+  const savedP3 = load('compass_phase3');
   const hasP1 = savedP1?.answers && Object.keys(savedP1.answers).length > 0;
   const hasP2 = savedP2?.answers && Object.keys(savedP2.answers).length > 0;
+  const hasP3 = savedP3?.answers && Object.keys(savedP3.answers).length > 0;
 
-  if (hasP1 || hasP2) {
+  if (hasP1 || hasP2 || hasP3) {
     const meta = load('compass_meta');
     const name = meta?.name || '';
-    const phaseLabel = hasP2 ? 'Phase 2' : 'Phase 1';
-    const totalAnswers = Object.keys((hasP2 ? savedP2 : savedP1).answers).length;
+    const phaseLabel = hasP3 ? 'Phase 3' : (hasP2 ? 'Phase 2' : 'Phase 1');
+    const latest = hasP3 ? savedP3 : (hasP2 ? savedP2 : savedP1);
+    const totalAnswers = Object.keys(latest.answers).length;
     const resumeDiv = document.createElement('div');
     resumeDiv.style.cssText = 'background:var(--teal-light);padding:16px;border-radius:12px;margin-top:16px;font-size:14px;';
     resumeDiv.innerHTML = `
@@ -4627,8 +4721,16 @@ function renderIntro() {
       STATE.participantName = name;
       // 이어하기 배너 표시 플래그 (renderQuestion 첫 호출 시 1회 표시)
       try { sessionStorage.setItem('compass_resume_pending', '1'); } catch(e) {}
-      // Phase 2 우선 복원, 없으면 Phase 1
-      if (hasP2) {
+      // Phase 3 우선, 없으면 2, 없으면 1
+      if (hasP3) {
+        STATE.answers = savedP3.answers;
+        STATE.route = savedP3.route || savedP2?.route || null;
+        STATE.bTypeFlagged = !!(savedP3.bTypeFlagged || savedP2?.bTypeFlagged);
+        STATE.tournament = savedP1?.tournament || null;
+        STATE.axes = savedP1?.axes || null;
+        STATE.currentPhase = 3;
+        resumePhase3();
+      } else if (hasP2) {
         STATE.answers = savedP2.answers;
         STATE.route = savedP2.route;
         STATE.bTypeFlagged = !!savedP2.bTypeFlagged;
@@ -4645,6 +4747,7 @@ function renderIntro() {
     $('#restart-btn').addEventListener('click', () => {
       localStorage.removeItem('compass_phase1');
       localStorage.removeItem('compass_phase2');
+      localStorage.removeItem('compass_phase3');
       resumeDiv.remove();
     });
   }
@@ -4739,20 +4842,52 @@ function showPhase2ResumeModal(order) {
   });
 }
 
+function resumePhase3() {
+  const order = buildPhase3Order(STATE.answers);
+  let resumeIdx = order.length;
+  for (let i = 0; i < order.length; i++) {
+    if (!STATE.answers[order[i].id]) { resumeIdx = i; break; }
+  }
+  if (resumeIdx >= order.length) {
+    // 모든 Phase 3 응답 채워짐
+    const savedP3 = load('compass_phase3');
+    if (savedP3?.completedAt) {
+      // 정상 완료 → IB#8 (결과 리포트)
+      if (typeof renderIB8 === 'function') return renderIB8();
+      return showPhase3Placeholder();
+    }
+    // 중간 이탈 → 마지막 문항 위치로 이동
+    const lastQ = order[order.length - 1];
+    STATE.currentPart = lastQ.part;
+    const partOrder = order.filter(x => x.part === lastQ.part);
+    STATE.currentIndex = partOrder.findIndex(x => x.id === lastQ.id);
+    return renderCurrentQuestion();
+  }
+  const q = order[resumeIdx];
+  STATE.currentPart = q.part;
+  const partOrder = order.filter(x => x.part === q.part);
+  STATE.currentIndex = partOrder.findIndex(x => x.id === q.id);
+  renderCurrentQuestion();
+}
+
 /* ---------- 8. 렌더링: 질문 ---------- */
 function renderCurrentQuestion() {
   STATE.currentScreen = 'question';
-  const order = STATE.currentPhase === 2
-    ? buildPhase2Order(STATE.answers, STATE.route)
-    : buildPhase1Order(STATE.answers);
+  let order;
+  if (STATE.currentPhase === 3)      order = buildPhase3Order(STATE.answers);
+  else if (STATE.currentPhase === 2) order = buildPhase2Order(STATE.answers, STATE.route);
+  else                                order = buildPhase1Order(STATE.answers);
 
   const partQs = order.filter(q => q.part === STATE.currentPart);
   const q = partQs[STATE.currentIndex];
   const globalIdx = order.findIndex(x => x.id === q.id);
 
   let total, progressPct;
-  if (STATE.currentPhase === 2) {
-    total = order.length; // 동적 (D 21 + F 12/11 + 향후 E 14)
+  if (STATE.currentPhase === 3) {
+    total = order.length; // 동적
+    progressPct = 80 + (globalIdx / total) * 20; // Phase 3 = 80~100%
+  } else if (STATE.currentPhase === 2) {
+    total = order.length;
     progressPct = 40 + (globalIdx / total) * 40; // Phase 2 = 40~80%
   } else {
     total = getPhase1TotalCount();
@@ -4778,9 +4913,14 @@ function renderQuestion(q, questionNum, totalNum) {
     'D_stage2': `Phase 2 · Part D · 2단계 (루트 ${STATE.route || ''})`,
     'D_stage3': `Phase 2 · Part D · 3단계 (루트 ${STATE.route || ''})`,
     'F':        'Phase 2 · Part F · 교차 검증',
-    'E':        'Phase 2 · Part E · 간절함과 정체성'
+    'E':        'Phase 2 · Part E · 간절함과 정체성',
+    // Phase 3
+    'G':        'Phase 3 · Part G · 5영역 현재 vs 100일 후',
+    'H':        'Phase 3 · Part H · 100일 방향 착지'
   };
-  const partMeta = partMetaMap[q.part] || (STATE.currentPhase === 2 ? 'Phase 2' : 'Phase 1');
+  const partMeta = partMetaMap[q.part]
+    || (STATE.currentPhase === 3 ? 'Phase 3'
+      : (STATE.currentPhase === 2 ? 'Phase 2' : 'Phase 1'));
 
   let body = '';
   let qtext = q.text;
@@ -5177,15 +5317,23 @@ function saveAndAdvance(q) {
       bTypeFlagged: STATE.bTypeFlagged,
       updatedAt: Date.now()
     });
+  } else if (STATE.currentPhase === 3) {
+    save('compass_phase3', {
+      answers: STATE.answers,
+      route: STATE.route,
+      bTypeFlagged: STATE.bTypeFlagged,
+      updatedAt: Date.now()
+    });
   }
 
   goNext(q);
 }
 
 function goNext(currentQ) {
-  const order = STATE.currentPhase === 2
-    ? buildPhase2Order(STATE.answers, STATE.route)
-    : buildPhase1Order(STATE.answers);
+  let order;
+  if (STATE.currentPhase === 3)      order = buildPhase3Order(STATE.answers);
+  else if (STATE.currentPhase === 2) order = buildPhase2Order(STATE.answers, STATE.route);
+  else                                order = buildPhase1Order(STATE.answers);
   const partQs = order.filter(q => q.part === STATE.currentPart);
   const nextIndex = STATE.currentIndex + 1;
 
@@ -5248,6 +5396,20 @@ function goNext(currentQ) {
       return renderIBPostPartE();
     }
   }
+
+  // Phase 3 경계
+  if (STATE.currentPhase === 3) {
+    if (STATE.currentPart === 'G') {
+      // Part G 종료 → IB#7 (5영역 갭 레이더 + C형 일치 여부)
+      if (typeof renderIB7 === 'function') return renderIB7();
+      return showPhase3Placeholder();
+    }
+    if (STATE.currentPart === 'H') {
+      // Part H 종료 → IB#8 (최종 결과 리포트 9항목)
+      if (typeof renderIB8 === 'function') return renderIB8();
+      return showPhase3Placeholder();
+    }
+  }
 }
 
 function goPrev() {
@@ -5275,6 +5437,17 @@ function goPrev() {
       const prevPart = partOrder[curIdx - 1];
       STATE.currentPart = prevPart;
       const prevPartQs = buildPhase2Order(STATE.answers, STATE.route).filter(q => q.part === prevPart);
+      STATE.currentIndex = prevPartQs.length - 1;
+      return renderCurrentQuestion();
+    }
+  }
+  if (STATE.currentPhase === 3) {
+    const partOrder = ['G','H'];
+    const curIdx = partOrder.indexOf(STATE.currentPart);
+    if (curIdx > 0) {
+      const prevPart = partOrder[curIdx - 1];
+      STATE.currentPart = prevPart;
+      const prevPartQs = buildPhase3Order(STATE.answers).filter(q => q.part === prevPart);
       STATE.currentIndex = prevPartQs.length - 1;
       return renderCurrentQuestion();
     }
@@ -5746,6 +5919,51 @@ function enterPhase2() {
   renderPhase2Intro();
 }
 
+/* ---------- Phase 3 진입 ---------- */
+function enterPhase3() {
+  STATE.currentPhase = 3;
+  gaEvent('compass_phase_start', { phase: 3 });
+  renderPhase3Intro();
+}
+
+function renderPhase3Intro() {
+  setProgress(80);
+  STATE.currentScreen = 'phase3Intro';
+  const app = $('#app');
+  const total = getPhase3TotalCount();
+  app.innerHTML = `
+    <div class="intro">
+      <h1>Phase 3 시작</h1>
+      <p class="subtitle">5영역 현재 vs 100일 후 + 100일 방향 착지</p>
+
+      <div class="card">
+        <h3>이 단계에서 하는 것</h3>
+        <ul>
+          <li>건강·재정·성장·관계·기여 5영역의 현재와 원하는 상태를 슬라이더로 표시</li>
+          <li>슬라이더 값마다 실제 행동·감정 앵커가 함께 보여서 헷갈리지 않습니다</li>
+          <li>가장 큰 갭이 C형 목표와 어떻게 연결되는지 정리</li>
+          <li>100일 동안의 방향을 6가지 질문으로 착지</li>
+          <li>총 ${total}문항 · 약 12~15분 · 인사이트 브레이크 2회</li>
+        </ul>
+      </div>
+
+      <div class="actions" style="flex-direction:column;">
+        <button class="btn btn-primary" id="phase3-begin">Phase 3 첫 질문으로</button>
+        <button class="btn btn-ghost" id="phase3-back" style="margin-top:8px;">Phase 2 결과로 돌아가기</button>
+      </div>
+    </div>
+  `;
+  $('#phase3-begin').addEventListener('click', () => {
+    STATE.currentPart = 'G';
+    STATE.currentIndex = 0;
+    renderCurrentQuestion();
+  });
+  $('#phase3-back').addEventListener('click', () => {
+    STATE.currentPhase = 2;
+    renderIBPostPartE();
+  });
+}
+
 function renderPhase2Intro() {
   setProgress(40);
   STATE.currentScreen = 'phase2Intro';
@@ -6093,7 +6311,7 @@ function renderIBPostPartE() {
         identityFocus: STATE.answers.E11?.tags?.identity_focus || null,
         completedAt: Date.now()
       });
-      showPhase3Placeholder();
+      enterPhase3();
     }
   });
 
