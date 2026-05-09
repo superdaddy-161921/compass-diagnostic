@@ -1535,6 +1535,28 @@ const ANCHORS = {
   }
 };
 
+// G11·G12 — 5영역 점수를 본 후 성찰 2문항
+const PHASE3_G_REFLECTION = [
+  { id: "G11", type: "single", part: "G",
+    text: "가장 큰 갭이 [G11_TOP_GAP_AREA]입니다. C형 목표와 어떤 관계인가요?",
+    options: [
+      { label: "(A) C형 목표가 바로 이 영역이다",                  value: "A", tags: { gap_relation: "match" } },
+      { label: "(B) 직접적은 아니지만 연결되어 있다",                value: "B", tags: { gap_relation: "connected" } },
+      { label: "(C) C형 목표와는 다른 영역이다 — 둘 다 중요하다",   value: "C", tags: { gap_relation: "separate" } },
+      { label: "(D) 생각해보니 이 갭이 더 시급한 것 같기도 하다",   value: "D", tags: { gap_relation: "reconsider", flag_reprioritize: true } }
+    ]
+  },
+  { id: "G12", type: "single", part: "G",
+    text: "5개 영역 점수를 보면서 새롭게 느낀 것이 있나요?",
+    options: [
+      { label: "(A) C형 목표의 중요성이 다시 확인되었다",          value: "A", tags: { g12_reflect: "confirmed" } },
+      { label: "(B) 여러 영역이 함께 연결되어 있다는 걸 느꼈다",   value: "B", tags: { g12_reflect: "interconnected" } },
+      { label: "(C) C형 목표 외에 다른 영역도 신경 써야겠다",      value: "C", tags: { g12_reflect: "broaden" } },
+      { label: "(D) 특별히 새로운 느낌은 없다",                    value: "D", tags: { g12_reflect: "neutral" } }
+    ]
+  }
+];
+
 // 행동 확인 (GA1~GA5) — 각 영역의 실제 행동 빈도, 앵커 1/3/5/7/10 1:1 대응
 const GA_QUESTIONS = [
   { id: "GA1", type: "single", part: "G", area: "health",
@@ -4023,10 +4045,8 @@ function buildPhase3Order(answers) {
     if (gaByArea[area]) order.push({ ...gaByArea[area], part: 'G' });
   });
 
-  // Part G 성찰 (G11·G12) — 다음 commit 에서 typeof 가드로 추가
-  if (typeof PHASE3_G_REFLECTION !== 'undefined' && Array.isArray(PHASE3_G_REFLECTION)) {
-    PHASE3_G_REFLECTION.forEach(q => order.push({ ...q, part: 'G' }));
-  }
+  // Part G 성찰 (G11·G12) — IB#7 직전
+  PHASE3_G_REFLECTION.forEach(q => order.push({ ...q, part: 'G' }));
 
   // Part H (H1~H6) — 다음 commit 에서 typeof 가드로 추가
   if (typeof PHASE3_H !== 'undefined' && Array.isArray(PHASE3_H)) {
@@ -4185,6 +4205,28 @@ function stripOptionPrefix(label) {
   return (label || '').replace(/^\([A-Z]\)\s*/, '').trim();
 }
 
+// Phase 3 — 5영역 (target - current) 갭이 가장 큰 영역 반환
+// answers: G1·G2(health), G3·G4(finance), G5·G6(growth), G7·G8(relationship), G9·G10(contribution)
+function getTopGapArea(answers) {
+  const map = {
+    health:       ['G1',  'G2'],
+    finance:      ['G3',  'G4'],
+    growth:       ['G5',  'G6'],
+    relationship: ['G7',  'G8'],
+    contribution: ['G9',  'G10']
+  };
+  let topArea = null, topGap = -Infinity;
+  for (const area of Object.keys(map)) {
+    const [curId, tgtId] = map[area];
+    const cur = answers[curId]?.sliderValue;
+    const tgt = answers[tgtId]?.sliderValue;
+    if (typeof cur !== 'number' || typeof tgt !== 'number') continue;
+    const gap = tgt - cur;
+    if (gap > topGap) { topGap = gap; topArea = area; }
+  }
+  return topArea;
+}
+
 // 한국어 받침 검사: 마지막 글자에 종성 있으면 true
 function hasJongsung(s) {
   if (!s) return false;
@@ -4223,6 +4265,10 @@ function replacePlaceholders(template, state) {
     }
   }
   subs['[D20 선택 결과]'] = d20Goal?.achievement_form || '아직 정해지지 않은 목표';
+
+  // [G11_TOP_GAP_AREA] = 5영역 중 (target - current) 갭이 가장 큰 영역의 라벨
+  const gapArea = getTopGapArea(a);
+  subs['[G11_TOP_GAP_AREA]'] = (gapArea && AREA_LABELS[gapArea]) ? AREA_LABELS[gapArea] : '아직 평가되지 않은 영역';
 
   // 위치별 교체 + 직후 조사 보정
   const placeholders = Object.keys(subs);
@@ -4930,7 +4976,7 @@ function renderQuestion(q, questionNum, totalNum) {
     qtext = buildQ41Text();
   } else if (q.id === 'D1') {
     qtext = buildD1Text(STATE);
-  } else if (q.part === 'F') {
+  } else if (q.part === 'F' || q.part === 'G') {
     qtext = replacePlaceholders(q.text, STATE);
   }
 
