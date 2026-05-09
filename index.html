@@ -6675,6 +6675,7 @@ function getOrCreateUUID() {
     uuid = 'cmp-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
   }
   try { localStorage.setItem('compass_uuid', uuid); } catch(e) {}
+  gaEvent('compass_uuid_created', { uuid });
   return uuid;
 }
 
@@ -6840,6 +6841,7 @@ function renderIB8() {
         }
       } catch(e) {}
 
+      gaEvent('compass_part_complete', { phase: 3, part: 'H' });
       gaEvent('compass_phase_complete', { phase: 3 });
       gaEvent('compass_complete', {
         passion_score: passion.score,
