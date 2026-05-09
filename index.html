@@ -218,6 +218,72 @@
     line-height: 1.45; font-style: italic;
   }
 
+  /* IB#8 — 최종 결과 리포트 9항목 그리드 */
+  .ib8-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; margin: 12px 0 8px;
+  }
+  .ib8-card {
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px; text-align: left;
+    box-shadow: 0 1px 4px rgba(27,42,74,.05);
+  }
+  .ib8-card-wide { grid-column: 1 / -1; }
+  .ib8-cert {
+    grid-column: 1 / -1;
+    background: linear-gradient(135deg, var(--teal-light) 0%, #fff 100%);
+    border-left: 4px solid var(--teal);
+    text-align: center; padding: 18px 16px;
+  }
+  .ib8-cert-icon {
+    font-size: 32px; color: var(--teal); font-weight: 800;
+    line-height: 1; margin-bottom: 4px;
+  }
+  .ib8-cert-title {
+    font-size: 11px; font-weight: 700; color: var(--teal);
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .ib8-cert-name {
+    font-size: 18px; font-weight: 800; color: var(--navy); margin-top: 4px;
+  }
+  .ib8-h {
+    font-size: 11px; font-weight: 700; color: var(--teal);
+    letter-spacing: 0.05em; margin-bottom: 6px; text-transform: uppercase;
+  }
+  .ib8-t {
+    font-size: 14px; font-weight: 700; color: var(--navy);
+    line-height: 1.4;
+  }
+  .ib8-sub {
+    font-size: 12px; color: var(--text-secondary);
+    line-height: 1.4; margin-top: 4px;
+  }
+  .ib8-meter {
+    display: flex; align-items: center; gap: 10px; margin-top: 4px;
+  }
+  .ib8-meter-track {
+    flex: 1; height: 8px; background: var(--border);
+    border-radius: 999px; overflow: hidden;
+  }
+  .ib8-meter-fill {
+    height: 100%; background: var(--teal);
+    border-radius: 999px; transition: width .6s ease;
+  }
+  .ib8-meter-val {
+    font-size: 14px; font-weight: 700; color: var(--navy);
+    min-width: 40px; text-align: right;
+  }
+  .ib8-voice-quote {
+    font-size: 17px; font-weight: 700; color: var(--gold);
+    text-align: center; padding: 12px 8px 6px;
+    line-height: 1.4; letter-spacing: -0.01em;
+  }
+  @media (max-width: 480px) {
+    .ib8-grid { grid-template-columns: 1fr; }
+    .ib8-card-wide { grid-column: auto; }
+  }
+
   /* Actions */
   .actions {
     display: flex; gap: 10px; margin-top: 12px;
@@ -5610,7 +5676,10 @@ async function saveIBImage(el) {
   const target = el.querySelector('.ib-inner');
   if (!window.html2canvas || !target) return;
 
-  const filename = `나침반_Phase1_${(STATE.participantName||'나의결과').replace(/\s+/g,'_')}_${Date.now()}.png`;
+  const phaseTag = STATE.currentPhase === 3 ? '최종결과'
+                 : STATE.currentPhase === 2 ? 'Phase2'
+                 : 'Phase1';
+  const filename = `나침반_${phaseTag}_${(STATE.participantName||'나의결과').replace(/\s+/g,'_')}_${Date.now()}.png`;
   const btn = el.querySelector('#ib-save-btn');
   if (btn) { btn.disabled = true; btn.textContent = '이미지 생성 중…'; }
 
@@ -6565,6 +6634,244 @@ function drawGapRadar(canvasId, currentArr, targetArr, labels) {
         }
       }
     }
+  });
+}
+
+/* ---------- UUID 헬퍼 ---------- */
+function getOrCreateUUID() {
+  let uuid;
+  try { uuid = localStorage.getItem('compass_uuid'); } catch(e) {}
+  if (uuid) return uuid;
+  if (window.crypto?.randomUUID) {
+    uuid = crypto.randomUUID();
+  } else {
+    // 폴백: 시간 + 랜덤
+    uuid = 'cmp-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+  }
+  try { localStorage.setItem('compass_uuid', uuid); } catch(e) {}
+  return uuid;
+}
+
+/* ---------- Phase 3 인사이트 브레이크 #8 (최종 결과 리포트, 9항목) ---------- */
+function renderIB8() {
+  const a = STATE.answers;
+  const name = STATE.participantName || '당신';
+  const passion = calculatePassionScore(a);
+  const finalGoal = extractFinalGoal(a);
+  const route = STATE.route;
+  const routeName = ROUTE_NAMES[route] || '';
+  const topDesire = STATE.tournament?.winners?.final
+                  || getTopArea(a, ['Q1','Q2','Q3','Q4','Q5','Q6','Q7','QB1','QB2','QB3','QB4','QB5']);
+  const topDesireLabel = AREA_LABELS[topDesire] || '탐색 중';
+
+  // 5영역 갭
+  const labelMap = {
+    health:'건강·체력', finance:'경제적 자유', growth:'성장·학습',
+    relationship:'관계·가정', contribution:'기여·영향력'
+  };
+  const gMap = {
+    health:['G1','G2'], finance:['G3','G4'], growth:['G5','G6'],
+    relationship:['G7','G8'], contribution:['G9','G10']
+  };
+  const areas = ['health','finance','growth','relationship','contribution'];
+  const cur = areas.map(ar => a[gMap[ar][0]]?.sliderValue ?? 5);
+  const tgt = areas.map(ar => a[gMap[ar][1]]?.sliderValue ?? 5);
+  const topGapArea = getTopGapArea(a);
+  const topGapLabel = labelMap[topGapArea] || '미평가';
+
+  // 100일 방향 (H2)
+  const h2map = {
+    measurable: '숫자로 측정 가능한 변화 (인바디·자산·시험 등)',
+    habit:      '새로운 습관을 완전히 정착',
+    skill:      '특정 기술·능력 습득',
+    relationship:'중요한 관계의 의미 있는 변화',
+    unsure:     'OT에서 함께 정함'
+  };
+  const h2type = a.H2?.tags?.h2_type;
+  const h2Label = h2map[h2type] || '아직 정해지지 않음';
+
+  // 가장 먼저 (H1)
+  const h1map = {
+    habit:'매일 반복할 수 있는 작은 습관 만들기',
+    knowledge:'필요한 지식·정보를 체계적으로 쌓기',
+    mentor:'이미 이룬 사람을 찾아 배우기',
+    measure:'지금 상태를 정확히 측정 + 기록 시작',
+    obstacle:'가장 큰 장애물 먼저 제거'
+  };
+  const h1Label = h1map[a.H1?.tags?.h1_focus] || '아직 정해지지 않음';
+
+  // 100일 각오 (H5 — slider 1~10)
+  const h5 = a.H5?.sliderValue;
+  const h5Pct = (typeof h5 === 'number') ? Math.round(h5 * 10) : 0;
+
+  // 100일 후 한마디 (H6)
+  const h6map = {
+    proud:    '"해냈구나, 정말 자랑스럽다"',
+    grateful: '"포기하지 않아서 고맙다"',
+    continue: '"이건 시작일 뿐이야, 계속 가자"',
+    identity: '"드디어 진짜 내가 되었구나"',
+    trust:    '"네가 옳았어, 믿어줘서 고마워"'
+  };
+  const h6Label = h6map[a.H6?.tags?.h6_voice] || '—';
+
+  // 정체성 (E9·E10)
+  const e9label  = stripOptionPrefix(a.E9?.label);
+  const e10label = stripOptionPrefix(a.E10?.label);
+
+  // 총 문항 수 동적 계산 — Phase 1 + Phase 2 + Phase 3
+  let totalQs = (typeof getPhase1TotalCount === 'function') ? getPhase1TotalCount() : 49;
+  totalQs += buildPhase2Order(a, route).length;
+  totalQs += buildPhase3Order(a).length;
+
+  // 9항목 본문
+  const html = `
+    <div class="ib8-grid">
+      <!-- 1. 인증 -->
+      <div class="ib8-card ib8-cert">
+        <div class="ib8-cert-icon">✓</div>
+        <div class="ib8-cert-title">진단 완료</div>
+        <div class="ib8-cert-name">${escapeHtml(name)}님</div>
+      </div>
+
+      <!-- 2. 최종 C형 목표 -->
+      <div class="ib8-card">
+        <div class="ib8-h">최종 C형 목표</div>
+        <div class="ib8-t">${escapeHtml(finalGoal.statement || 'OT에서 함께 정합니다')}</div>
+        ${finalGoal.beingForm ? `<div class="ib8-sub">→ ${escapeHtml(finalGoal.beingForm)}</div>` : ''}
+      </div>
+
+      <!-- 3. 갈망 영역 + 루트 -->
+      <div class="ib8-card">
+        <div class="ib8-h">갈망 1위 영역 / 루트</div>
+        <div class="ib8-t"><strong>${escapeHtml(topDesireLabel)}</strong>${route ? ` · 루트 ${escapeHtml(route)} ${escapeHtml(routeName)}` : ''}</div>
+      </div>
+
+      <!-- 4. 간절함 -->
+      <div class="ib8-card">
+        <div class="ib8-h">간절함</div>
+        <div class="ib8-meter">
+          <div class="ib8-meter-track"><div class="ib8-meter-fill" style="width:${passion.percentage}%;"></div></div>
+          <div class="ib8-meter-val">${passion.percentage}%</div>
+        </div>
+      </div>
+
+      <!-- 5. 100일 방향 유형 (H2) -->
+      <div class="ib8-card">
+        <div class="ib8-h">100일 방향 유형</div>
+        <div class="ib8-t">${escapeHtml(h2Label)}</div>
+      </div>
+
+      <!-- 6. 5영역 갭 차트 -->
+      <div class="ib8-card ib8-card-wide">
+        <div class="ib8-h">5영역 현재 vs 100일 후</div>
+        <div style="margin:8px auto 4px;text-align:center;">
+          <canvas id="ib8-radar" width="320" height="320"></canvas>
+        </div>
+        <div class="ib8-sub" style="text-align:center;">가장 큰 갭: <strong>${escapeHtml(topGapLabel)}</strong></div>
+      </div>
+
+      <!-- 7. 첫 100일 출발선 (H1) -->
+      <div class="ib8-card">
+        <div class="ib8-h">첫 100일 출발선</div>
+        <div class="ib8-t">${escapeHtml(h1Label)}</div>
+      </div>
+
+      <!-- 8. 100일 각오 (H5) -->
+      <div class="ib8-card">
+        <div class="ib8-h">100일 각오</div>
+        <div class="ib8-meter">
+          <div class="ib8-meter-track"><div class="ib8-meter-fill" style="width:${h5Pct}%;background:var(--gold);"></div></div>
+          <div class="ib8-meter-val">${typeof h5 === 'number' ? h5 : '-'}/10</div>
+        </div>
+      </div>
+
+      <!-- 9. 100일 후 나에게 -->
+      <div class="ib8-card ib8-card-wide ib8-voice">
+        <div class="ib8-h">100일 후 나에게 한마디</div>
+        <div class="ib8-voice-quote">${escapeHtml(h6Label)}</div>
+        ${e9label ? `<div class="ib8-sub" style="margin-top:10px;">정체성: <strong>${escapeHtml(e9label)}</strong>${e10label ? ` · ${escapeHtml(e10label)}` : ''}</div>` : ''}
+      </div>
+    </div>
+
+    <p class="ib-body" style="margin-top:24px;text-align:center;">
+      <strong>${totalQs}개의 질문에 답하면서, 당신은 이미 변화를 시작했습니다.</strong>
+    </p>
+  `;
+
+  renderInsightBreakShell({
+    number: 8,
+    label: 'Phase 3 · 인사이트 브레이크 2/2 · 최종 결과',
+    title: '100일 나침반 — 최종 리포트',
+    contentHtml: html,
+    ctaText: 'OT에서 만나요',
+    saveBtn: true,
+    onContinue: () => {
+      const uuid = getOrCreateUUID();
+      try {
+        // URL 해시로 결과 ID 부착 (공유/관리자 조회용)
+        if (window.location.hash !== '#id=' + uuid) {
+          window.location.hash = 'id=' + uuid;
+        }
+      } catch(e) {}
+
+      gaEvent('compass_phase_complete', { phase: 3 });
+      gaEvent('compass_complete', {
+        passion_score: passion.score,
+        passion_pct: passion.percentage,
+        c_type_confirmed: !!finalGoal.statement,
+        route: route || 'unknown'
+      });
+
+      save('compass_phase3', {
+        answers: STATE.answers,
+        route: STATE.route,
+        bTypeFlagged: STATE.bTypeFlagged,
+        topGapArea,
+        h2type,
+        h6: a.H6?.tags?.h6_voice || null,
+        h5: typeof h5 === 'number' ? h5 : null,
+        completedAt: Date.now(),
+        uuid
+      });
+
+      // 마무리 화면 (감사 메시지 + UUID 노출)
+      showCompassFarewell(uuid);
+    }
+  });
+
+  // 레이더 차트 그리기 (overlay가 DOM에 추가된 후)
+  requestAnimationFrame(() => drawGapRadar('ib8-radar', cur, tgt, areas.map(ar => labelMap[ar])));
+}
+
+function showCompassFarewell(uuid) {
+  setProgress(100);
+  STATE.currentScreen = 'phase3Complete';
+  const app = $('#app');
+  app.innerHTML = `
+    <div class="complete">
+      <div class="checkmark">✓</div>
+      <h1 style="font-size:24px;margin:0 0 12px;color:var(--navy);">진단 종료</h1>
+      <p class="muted">${escapeHtml(STATE.participantName || '당신')}님, 끝까지 답해주셔서 감사합니다.</p>
+      <div class="card" style="margin:24px 0;text-align:left;">
+        <div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:8px;letter-spacing:0.05em;">다음 단계 — OT</div>
+        <div style="font-size:14px;color:var(--text-secondary);line-height:1.6;">
+          OT 일정 안내가 곧 전달됩니다. 진단 결과는 이 기기에 저장되어 있고,
+          OT에서 함께 깊이 있게 다룹니다.
+        </div>
+      </div>
+      <div class="card" style="margin:16px 0;text-align:left;background:var(--teal-light);">
+        <div style="font-size:11px;font-weight:700;color:var(--teal);margin-bottom:6px;letter-spacing:0.05em;">결과 ID</div>
+        <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--navy);word-break:break-all;">${escapeHtml(uuid)}</div>
+      </div>
+      <div class="actions" style="flex-direction:column;">
+        <button class="btn btn-secondary" id="review-ib8">결과 리포트 다시 보기</button>
+        <button class="btn btn-ghost" id="back-intro" style="margin-top:8px;">처음 화면으로</button>
+      </div>
+    </div>
+  `;
+  $('#review-ib8').addEventListener('click', renderIB8);
+  $('#back-intro').addEventListener('click', () => {
+    if (confirm('처음 화면으로 돌아갑니다. 진행 데이터는 유지됩니다.')) renderIntro();
   });
 }
 
