@@ -6370,6 +6370,146 @@ function renderIBPostPartE() {
   });
 }
 
+/* ---------- Phase 3 인사이트 브레이크 #7 (Part G 종료) ---------- */
+// 5영역 갭 레이더 + 가장 큰 갭 표시 + C형 목표 일치 여부
+function renderIB7() {
+  const a = STATE.answers;
+  const areas = ['health','finance','growth','relationship','contribution'];
+  const labelMap = {
+    health: '건강·체력', finance: '경제적 자유', growth: '성장·학습',
+    relationship: '관계·가정', contribution: '기여·영향력'
+  };
+  const map = {
+    health:       ['G1', 'G2'],
+    finance:      ['G3', 'G4'],
+    growth:       ['G5', 'G6'],
+    relationship: ['G7', 'G8'],
+    contribution: ['G9', 'G10']
+  };
+  const cur = areas.map(area => a[map[area][0]]?.sliderValue ?? 5);
+  const tgt = areas.map(area => a[map[area][1]]?.sliderValue ?? 5);
+
+  const topArea = getTopGapArea(a);
+  const topAreaLabel = labelMap[topArea] || '아직 정해지지 않은 영역';
+  let topCur = 0, topTgt = 0, topGap = 0;
+  if (topArea) {
+    topCur = a[map[topArea][0]]?.sliderValue ?? 0;
+    topTgt = a[map[topArea][1]]?.sliderValue ?? 0;
+    topGap = topTgt - topCur;
+  }
+
+  const g11Rel = a.G11?.tags?.gap_relation;
+  const matchMsgMap = {
+    match:      { icon: '✅', body: 'C형 목표가 가장 큰 갭 영역과 일치합니다. 방향이 명확합니다.' },
+    connected:  { icon: '🔗', body: 'C형 목표와 연결된 영역입니다. 100일 동안 두 영역이 함께 자라날 수 있습니다.' },
+    separate:   { icon: '💡', body: 'C형 목표는 별도 영역입니다. 두 가지 다 중요한 균형이 필요합니다.' },
+    reconsider: { icon: '🚨', body: '갭이 더 시급할 수 있습니다. OT에서 우선순위를 함께 검토하겠습니다.' }
+  };
+  const matchMsg = matchMsgMap[g11Rel] || { icon: '🧭', body: 'C형 목표와의 관계는 OT에서 함께 정리합니다.' };
+
+  const html = `
+    <div class="ib7-radar-wrap" style="margin:8px 0 18px;text-align:center;">
+      <canvas id="ib7-radar" width="380" height="380"></canvas>
+    </div>
+    <div class="summary-block" style="border-left:4px solid var(--gold);">
+      <div class="h">가장 큰 갭</div>
+      <div class="t"><strong>${escapeHtml(topAreaLabel)}</strong> — 현재 <strong>${topCur}</strong> / 원하는 <strong>${topTgt}</strong> · 갭 <strong>${topGap}</strong></div>
+    </div>
+    <div class="summary-block" style="border-left:4px solid var(--teal);margin-top:12px;">
+      <div class="h">C형 목표와의 관계</div>
+      <div class="t">${matchMsg.icon} ${escapeHtml(matchMsg.body)}</div>
+    </div>
+  `;
+
+  renderInsightBreakShell({
+    number: 7,
+    label: 'Phase 3 · 인사이트 브레이크 1/2',
+    title: '5영역의 현재와 100일 후',
+    contentHtml: html,
+    ctaText: 'Part H로 — 100일 방향 정하기',
+    onContinue: () => {
+      gaEvent('compass_part_complete', { phase: 3, part: 'G' });
+      save('compass_phase3', {
+        answers: STATE.answers,
+        route: STATE.route,
+        bTypeFlagged: STATE.bTypeFlagged,
+        partGCompletedAt: Date.now(),
+        topGapArea: topArea
+      });
+      STATE.currentPart = 'H';
+      STATE.currentIndex = 0;
+      // PHASE3_H가 아직 없으면 (C5 이전) placeholder
+      if (typeof PHASE3_H === 'undefined' || !Array.isArray(PHASE3_H) || PHASE3_H.length === 0) {
+        return showPhase3Placeholder();
+      }
+      renderCurrentQuestion();
+    }
+  });
+
+  // 레이더 차트 그리기 (overlay가 DOM에 추가된 후)
+  requestAnimationFrame(() => drawGapRadar('ib7-radar', cur, tgt, areas.map(a => labelMap[a])));
+}
+
+// 5영역 갭 레이더 차트 — 현재(틸) + 원하는(네이비) 2 데이터셋
+function drawGapRadar(canvasId, currentArr, targetArr, labels) {
+  const el = document.getElementById(canvasId);
+  if (!el || !window.Chart) return;
+  new Chart(el, {
+    type: 'radar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '현재',
+          data: currentArr,
+          backgroundColor: 'rgba(26,143,106,0.18)',
+          borderColor: '#1A8F6A',
+          pointBackgroundColor: '#1A8F6A',
+          pointBorderColor: '#FFFFFF',
+          pointRadius: 4,
+          borderWidth: 2
+        },
+        {
+          label: '100일 후 원하는',
+          data: targetArr,
+          backgroundColor: 'rgba(27,42,74,0.10)',
+          borderColor: '#1B2A4A',
+          pointBackgroundColor: '#1B2A4A',
+          pointBorderColor: '#FFFFFF',
+          pointRadius: 4,
+          borderWidth: 2,
+          borderDash: [4, 4]
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: { color: '#1B2A4A', font: { size: 12, weight: '600' } }
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.dataset.label} · ${ctx.label}: ${ctx.formattedValue}`
+          }
+        }
+      },
+      scales: {
+        r: {
+          min: 0, max: 10,
+          ticks: { stepSize: 2, color: '#8E9BAA', font: { size: 10 }, backdropColor: 'transparent' },
+          angleLines: { color: '#E2E8F0' },
+          grid: { color: '#E2E8F0' },
+          pointLabels: { color: '#1B2A4A', font: { size: 12, weight: '600' } }
+        }
+      }
+    }
+  });
+}
+
 /* Phase 3 placeholder (Phase 3는 다음 빌드) */
 function showPhase3Placeholder() {
   setProgress(80);
