@@ -284,6 +284,32 @@
     .ib8-card-wide { grid-column: auto; }
   }
 
+  /* 관리자 페이지 (?admin=1) */
+  .admin-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+  .admin-table th, .admin-table td {
+    padding: 12px 14px; text-align: left;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .admin-table th {
+    background: #F0F4F8;
+    font-size: 11px; font-weight: 700; color: var(--text-secondary);
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .admin-table tbody tr:last-child td { border-bottom: none; }
+  .admin-table tbody tr:hover { background: #FAFBFC; }
+  .adm-goal { max-width: 280px; line-height: 1.4; color: var(--navy); font-weight: 600; }
+  .adm-uuid { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); margin-top: 3px; word-break: break-all; }
+  .adm-flag { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .adm-flag-red    { background: #FEF2F2; color: #B91C1C; }
+  .adm-flag-yellow { background: #FFF7E6; color: #92400E; }
+  .adm-flag-green  { background: #ECFDF5; color: #047857; }
+  .adm-tag { display: inline-block; padding: 2px 6px; margin-right: 4px; border-radius: 4px; font-size: 10.5px; font-weight: 700; background: var(--border); color: var(--text-muted); font-family: 'DM Mono', monospace; }
+  .adm-tag.on { background: var(--teal); color: #fff; }
+  .adm-date { font-family: 'DM Mono', monospace; font-size: 11.5px; color: var(--text-muted); white-space: nowrap; }
+
   /* Actions */
   .actions {
     display: flex; gap: 10px; margin-top: 12px;
@@ -6921,11 +6947,163 @@ function showPhase3Placeholder() {
 }
 
 
+/* ---------- 관리자 페이지 (?admin=1) ---------- */
+function detectFlags(answers) {
+  // 🔴 빨강: G11=D (우선순위 재검토 필요) / E14 미응답·고민
+  // 🟡 노랑: C형 수용도 낮음, 태도≠행동, extra_explore ≥ 2, F13=B/C/D
+  // 🟢 초록: 위 어떤 조건도 안 걸림
+  const out = { color: 'green', reasons: [] };
+
+  if (answers?.G11?.tags?.gap_relation === 'reconsider' || answers?.G11?.tags?.flag_reprioritize) {
+    out.color = 'red';
+    out.reasons.push('G11 우선순위 재검토');
+  }
+  if (!answers?.E14?.tags?.goal_id) {
+    out.color = (out.color === 'red') ? 'red' : 'red';
+    out.reasons.push('최종 C형 목표 미확정');
+  }
+
+  // 노랑 조건 (이미 빨강이면 추가만)
+  const acc = calculateCTypeAcceptance(answers || {});
+  if (acc.level === '탐색 중') {
+    if (out.color !== 'red') out.color = 'yellow';
+    out.reasons.push('C형 수용도 낮음');
+  }
+  const attitudeTop = getTopArea(answers || {}, ['Q1','Q2','Q3','Q4','Q5','Q6','Q7']);
+  const behaviorTop = getTopArea(answers || {}, ['QB1','QB2','QB3','QB4','QB5']);
+  if (attitudeTop && behaviorTop && attitudeTop !== behaviorTop) {
+    if (out.color !== 'red') out.color = 'yellow';
+    out.reasons.push('태도≠행동');
+  }
+  const extraE = countExtraExplorePartE(answers || {});
+  if (extraE >= 2) {
+    if (out.color !== 'red') out.color = 'yellow';
+    out.reasons.push(`extra_explore ${extraE}개 영역`);
+  }
+  if (['different','adjusted','unsure'].includes(answers?.F13?.tags?.axis8_verify)) {
+    if (out.color !== 'red') out.color = 'yellow';
+    out.reasons.push('F13 axis8 사용자 검증 신호');
+  }
+  return out;
+}
+
+function renderAdminPage() {
+  STATE.currentScreen = 'admin';
+  setProgress(null);
+  document.body.style.background = '#F8F9FA';
+  const app = $('#app');
+
+  // 같은 기기에 저장된 결과들 수집 (compass_phase1·2·3 + compass_meta + compass_uuid)
+  const meta = load('compass_meta') || {};
+  const p1 = load('compass_phase1');
+  const p2 = load('compass_phase2');
+  const p3 = load('compass_phase3');
+  const uuid = (() => { try { return localStorage.getItem('compass_uuid') || ''; } catch(e) { return ''; } })();
+
+  const rows = [];
+  if (p1 || p2 || p3) {
+    const merged = Object.assign({}, p1?.answers || {}, p2?.answers || {}, p3?.answers || {});
+    const finalGoal = extractFinalGoal(merged);
+    const passion = calculatePassionScore(merged);
+    const flag = detectFlags(merged);
+    const completedAt = p3?.completedAt || p2?.completedAt || p1?.completedAt || null;
+    const route = p3?.route || p2?.route || '-';
+    rows.push({
+      name: meta.name || '(미입력)',
+      uuid,
+      route,
+      goal: finalGoal.statement || '미확정',
+      passion: passion.percentage,
+      flag,
+      completedAt,
+      hasP1: !!p1, hasP2: !!p2, hasP3: !!p3
+    });
+  }
+
+  const flagDot = (color) => {
+    const map = { red:'🔴', yellow:'🟡', green:'🟢' };
+    return map[color] || '⚪';
+  };
+
+  const fmtDate = (ts) => ts
+    ? new Date(ts).toISOString().slice(0, 16).replace('T', ' ')
+    : '-';
+
+  const phaseTags = (r) => {
+    return [
+      `<span class="adm-tag ${r.hasP1?'on':''}">P1</span>`,
+      `<span class="adm-tag ${r.hasP2?'on':''}">P2</span>`,
+      `<span class="adm-tag ${r.hasP3?'on':''}">P3</span>`
+    ].join('');
+  };
+
+  app.innerHTML = `
+    <div class="admin-page" style="max-width:960px;margin:0 auto;padding:32px 20px;">
+      <h1 style="font-size:22px;font-weight:800;color:var(--navy);margin:0 0 8px;">관리자 페이지</h1>
+      <p class="muted" style="margin:0 0 18px;">localStorage 기반 — 같은 기기에 저장된 결과만 표시합니다.</p>
+
+      ${rows.length === 0
+        ? `<div class="card" style="text-align:center;padding:40px 20px;color:var(--text-muted);">저장된 진단 결과가 없습니다.</div>`
+        : `
+        <div class="card" style="padding:0;overflow:auto;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>이름</th>
+                <th>루트</th>
+                <th>C형 목표</th>
+                <th>간절함</th>
+                <th>플래그</th>
+                <th>진행</th>
+                <th>완료일</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(r => `
+                <tr>
+                  <td><strong>${escapeHtml(r.name)}</strong>${r.uuid ? `<div class="adm-uuid">${escapeHtml(r.uuid)}</div>` : ''}</td>
+                  <td>${escapeHtml(r.route)}</td>
+                  <td class="adm-goal">${escapeHtml(r.goal)}</td>
+                  <td>${r.passion}%</td>
+                  <td><span class="adm-flag adm-flag-${r.flag.color}" title="${escapeHtml(r.flag.reasons.join(' · ') || '정상')}">${flagDot(r.flag.color)} ${escapeHtml(r.flag.reasons[0] || '정상')}</span></td>
+                  <td>${phaseTags(r)}</td>
+                  <td class="adm-date">${escapeHtml(fmtDate(r.completedAt))}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div class="card" style="margin-top:18px;">
+          <h3 style="font-size:14px;color:var(--navy);margin:0 0 8px;">플래그 기준</h3>
+          <ul style="margin:0;padding-left:20px;font-size:13px;color:var(--text-secondary);line-height:1.7;">
+            <li>🔴 G11=D 또는 최종 C형 목표 미확정 — 우선순위 재검토</li>
+            <li>🟡 C형 수용도 낮음 / 태도≠행동 / extra_explore ≥ 2 / F13 axis8 사용자 검증 신호</li>
+            <li>🟢 정상 진행</li>
+          </ul>
+        </div>
+      `}
+
+      <div style="margin-top:24px;text-align:center;">
+        <a href="${window.location.pathname}" style="font-size:13px;color:var(--text-muted);text-decoration:underline;">← 진단 화면으로</a>
+      </div>
+    </div>
+  `;
+}
+
 /* ---------- 12. 부트스트랩 ---------- */
 document.addEventListener('DOMContentLoaded', () => {
   // 복구 메타
   const meta = load('compass_meta');
   if (meta?.name) STATE.participantName = meta.name;
+
+  // 관리자 페이지 (?admin=1)
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('admin') === '1') {
+      return renderAdminPage();
+    }
+  } catch (e) {}
+
   renderIntro();
 });
 </script>
