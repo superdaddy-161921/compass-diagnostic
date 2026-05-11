@@ -1449,7 +1449,7 @@ const QUESTIONS = {
 
       // ====== 2겹: 역방향 데이터 + 갈망 프로필 ======
       { id: "F5", type: "single", part: "F",
-        text: "Phase 1에서 당신이 '10년 후 절대 되고 싶지 않은 모습'으로 [Q36 결과]를 골랐습니다. 지금 세우려는 C형 목표가 이것을 방지하는 데 도움이 되나요?",
+        text: "Phase 1에서 당신이 '10년 후 절대 되고 싶지 않은 모습'으로 '[Q36 결과]'를 골랐습니다. 지금 세우려는 C형 목표가 이것을 방지하는 데 도움이 되나요?",
         options: [
           { label: "(A) 직접적으로 도움이 된다",                                                value: "A", tags: { consistency: 1.0 } },
           { label: "(B) 간접적으로는 연결된다",                                                  value: "B", tags: { consistency: 0.66 } },
@@ -1458,7 +1458,7 @@ const QUESTIONS = {
         ]
       },
       { id: "F6", type: "single", part: "F",
-        text: "Phase 1에서 '100일 동안 절대 하고 싶지 않은 것'으로 [Q37 결과]를 골랐습니다. C형 목표를 추구하면서 이것을 피할 수 있나요?",
+        text: "Phase 1에서 '100일 동안 절대 하고 싶지 않은 것'으로 '[Q37 결과]'를 골랐습니다. C형 목표를 추구하면서 이것을 피할 수 있나요?",
         options: [
           { label: "(A) 충분히 피할 수 있다",                  value: "A", tags: { consistency: 1.0 } },
           { label: "(B) 일부는 감수해야 할 수도 있다",         value: "B", tags: { consistency: 0.66 } },
@@ -4493,6 +4493,14 @@ function hasJongsung(s) {
   return (ch - 0xAC00) % 28 !== 0;
 }
 
+// PR #9 C6: 정체성 문장 — 받침에 따라 "이 됩니다" / "가 됩니다" 자동 보정
+// E9 옵션 (A) "사람" → "사람이 됩니다" / (E) "존재" → "존재가 됩니다"
+function formatIdentitySentence(identity) {
+  if (!identity) return '';
+  const josa = hasJongsung(identity) ? '이' : '가';
+  return `당신은 <strong>${escapeHtml(identity)}</strong>${josa} 됩니다.`;
+}
+
 // Part F (그리고 향후 Part E) 동적 텍스트 placeholder 치환
 // 본문 자체는 미변경. placeholder 직후의 조사("를/을", "는/은", "였/이었" 등)만
 // 받침에 따라 자동 보정. 9.5점 통과 본문은 한 글자도 안 건드림.
@@ -4530,9 +4538,15 @@ function replacePlaceholders(template, state) {
 
   // 위치별 교체 + 직후 조사 보정
   const placeholders = Object.keys(subs);
-  // 패턴: |placeholder + 어절경계 없는 조사
+  // 패턴: |placeholder + 어절경계 없는 조사 (인용 부호로 감싼 경우도 지원)
   const particleAdjust = (afterText, hasJong) => {
     let out = afterText;
+    // PR #9 C6: 인용 부호('", “”, ‘’) 직후의 조사도 보정
+    const quoteRe = /^(['"`’”])/;
+    out = out.replace(new RegExp("^(['\"`’”])(을|를)"), (m, q) => q + (hasJong ? '을' : '를'));
+    out = out.replace(new RegExp("^(['\"`’”])(은|는)"), (m, q) => q + (hasJong ? '은' : '는'));
+    out = out.replace(new RegExp("^(['\"`’”])(이|가)(?=\\s|$|[.,?!])"), (m, q) => q + (hasJong ? '이' : '가'));
+    out = out.replace(new RegExp("^(['\"`’”])(이었|였)"), (m, q) => q + (hasJong ? '이었' : '였'));
     out = out.replace(/^(을|를)/,    hasJong ? '을' : '를');
     out = out.replace(/^(은|는)/,    hasJong ? '은' : '는');
     out = out.replace(/^(이|가)(?=\s|$|[.,?!])/, hasJong ? '이' : '가');
@@ -6238,8 +6252,8 @@ function renderIB3() {
       <div class="h">태도 vs 행동</div>
       <div class="t">${match ? "일치" : "차이 있음"}</div>
       <div class="d">
-        말한 것: <strong>${escapeHtml(AREA_LABELS[attitudeTop] || '-')}</strong> ·
-        한 것: <strong>${escapeHtml(AREA_LABELS[behaviorTop] || '-')}</strong>
+        원한다고 말한 것: <strong>${escapeHtml(AREA_LABELS[attitudeTop] || '-')}</strong> ·
+        실제로 한 것: <strong>${escapeHtml(AREA_LABELS[behaviorTop] || '-')}</strong>
       </div>
     </div>
 
@@ -6741,7 +6755,7 @@ function renderIBPostPartE() {
   const identityHtml = e9label
     ? `<div class="summary-block">
          <div class="h">정체성 연결</div>
-         <div class="t">당신은 <strong>${escapeHtml(e9label)}</strong>이 됩니다.</div>
+         <div class="t">${formatIdentitySentence(e9label)}</div>
          ${e10label ? `<div class="d" style="margin-top:6px;">지금과의 차이 — ${escapeHtml(e10label)}</div>` : ''}
        </div>`
     : '';
