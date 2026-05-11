@@ -819,7 +819,7 @@ const AREA_LABELS = {
   health:       "건강 · 체력",
   finance:      "경제적 자유",
   growth:       "성장 · 학습",
-  relationship: "관계 · 가정",
+  relationship: "관계 · 가족",
   contribution: "기여 · 영향력",
   lifestyle:    "삶의 방식"
 };
@@ -1681,10 +1681,10 @@ const PHASE3_G_SLIDERS = [
     text: "100일 후 원하는 성장·학습 상태는?",
     leftLabel: "1 - 학습 활동 없음", rightLabel: "10 - 전문가 수준" },
   { id: "G7",  area: "relationship", phase_marker: "current", type: "slider10", part: "G",
-    text: "현재 관계·가정 상태는 어디쯤인가요?",
+    text: "현재 소중한 사람들과의 관계 상태는 어디쯤인가요?",
     leftLabel: "1 - 의미 있는 대화 없음", rightLabel: "10 - 최상 관계" },
   { id: "G8",  area: "relationship", phase_marker: "target",  type: "slider10", part: "G",
-    text: "100일 후 원하는 관계·가정 상태는?",
+    text: "100일 후 원하는 관계 상태는? (소중한 사람들과의 관계)",
     leftLabel: "1 - 의미 있는 대화 없음", rightLabel: "10 - 최상 관계" },
   { id: "G9",  area: "contribution", phase_marker: "current", type: "slider10", part: "G",
     text: "현재 기여·영향력 상태는 어디쯤인가요?",
@@ -6930,7 +6930,7 @@ function renderIB7() {
   const areas = ['health','finance','growth','relationship','contribution'];
   const labelMap = {
     health: '건강·체력', finance: '경제적 자유', growth: '성장·학습',
-    relationship: '관계·가정', contribution: '기여·영향력'
+    relationship: '관계·가족', contribution: '기여·영향력'
   };
   const map = {
     health:       ['G1', 'G2'],
@@ -7094,7 +7094,7 @@ function renderIB8() {
   // 5영역 갭
   const labelMap = {
     health:'건강·체력', finance:'경제적 자유', growth:'성장·학습',
-    relationship:'관계·가정', contribution:'기여·영향력'
+    relationship:'관계·가족', contribution:'기여·영향력'
   };
   const gMap = {
     health:['G1','G2'], finance:['G3','G4'], growth:['G5','G6'],
