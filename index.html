@@ -634,6 +634,52 @@
   }
   .extra-explore-note strong { color: #78350F; font-weight: 700; }
 
+  /* PR #9 C1 — IB#5 3/3 분기 박스 (재선택 기능) */
+  .ib5-branch-box {
+    margin: 24px 0 12px;
+    padding: 20px 16px;
+    background: linear-gradient(135deg, #FFFBEA 0%, #FEF3C7 100%);
+    border-left: 4px solid var(--gold);
+    border-radius: 12px;
+  }
+  .ib5-branch-q {
+    font-size: 16px; font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .ib5-branch-options { display: flex; flex-direction: column; gap: 8px; }
+  .branch-opt {
+    padding: 14px 18px;
+    border: 1.5px solid var(--border);
+    background: #fff; border-radius: 10px;
+    text-align: left; cursor: pointer;
+    font-size: 14px; font-weight: 600; color: var(--navy);
+    transition: all 0.2s;
+  }
+  .branch-opt:hover { border-color: var(--teal); background: var(--teal-light); }
+  .branch-opt-sub {
+    display: block;
+    font-size: 12px; font-weight: 400;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+  .branch-confirm:hover    { border-color: var(--teal); }
+  .branch-reconsider:hover { border-color: var(--gold); background: #FFFBEA; }
+  .branch-defer:hover      { border-color: var(--text-secondary); background: #F1F5F9; }
+
+  /* PR #9 C1 — D20 재제시 안내 */
+  .d20-reconsider-notice {
+    background: var(--teal-light);
+    color: var(--navy);
+    border-left: 4px solid var(--teal);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    font-size: 14px; font-weight: 600;
+    line-height: 1.5;
+  }
+
   /* Phase 1 complete */
   .complete {
     text-align: center; padding: 48px 16px;
@@ -4551,6 +4597,111 @@ function matchGoalsForD20(answers, route) {
   return top3;
 }
 
+// PR #9 C1: D20 재제시 — 첫 선택과 다른 후보 5개 (same-route 2 + cross-route 2 + OT defer 1)
+// axis8_areas 정합 + 첫 D20 선택 카테고리와 다른 후보 우선
+function matchGoalsForD20Reconsider(answers, route) {
+  if (typeof GOAL_POOL === 'undefined' || !GOAL_POOL.goals?.length) return [];
+
+  // 첫 D20 선택 추적 (D20_first 백업 우선, 현재 D20 응답 폴백)
+  const firstAns = answers.D20_first || answers[`D20-${route}`] || {};
+  const firstGoalId = firstAns?.tags?.goal_id || null;
+  const firstGoal   = firstGoalId ? GOAL_POOL.goals.find(g => g.id === firstGoalId) : null;
+  const firstCat    = firstGoal?.category || null;
+
+  // 사용자 axis8 영역 (토너먼트 우선 → 카운트 폴백, hidden_area 보강)
+  const userTopArea = STATE.tournament?.winners?.final
+                    || getTopArea(answers, ['Q1','Q2','Q3','Q4','Q5','Q6','Q7','QB1','QB2','QB3','QB4','QB5']);
+  const hiddenArea = answers['Q10-1']?.tags?.hidden_area;
+  const userAreas = new Set([userTopArea, hiddenArea].filter(Boolean));
+
+  const isAreaMatch = (g) => {
+    if (userAreas.size === 0) return false;
+    if (!Array.isArray(g.axis8_areas) || g.axis8_areas.length === 0) return false;
+    return g.axis8_areas.some(a => userAreas.has(a));
+  };
+  const isDifferentCat = (g) => firstCat ? g.category !== firstCat : true;
+
+  // Same-route 풀: 첫 선택과 같은 route, 첫 선택 자체는 제외
+  const sameRoutePool = GOAL_POOL.goals.filter(g =>
+    g.route === route && g.id !== firstGoalId
+  );
+  // 우선순위 정렬: area 정합 + 다른 카테고리 우선
+  sameRoutePool.sort((a, b) => {
+    const aScore = (isAreaMatch(a) ? 0 : 2) + (isDifferentCat(a) ? 0 : 1);
+    const bScore = (isAreaMatch(b) ? 0 : 2) + (isDifferentCat(b) ? 0 : 1);
+    return aScore - bScore;
+  });
+  const sameRoute = sameRoutePool.slice(0, 2);
+
+  // Cross-route 풀: 다른 route, area 정합 우선, 첫 선택과 다른 카테고리 우선
+  const crossRoutePool = GOAL_POOL.goals.filter(g =>
+    g.route !== route && g.id !== firstGoalId && !sameRoute.includes(g)
+  );
+  crossRoutePool.sort((a, b) => {
+    const aScore = (isAreaMatch(a) ? 0 : 2) + (isDifferentCat(a) ? 0 : 1);
+    const bScore = (isAreaMatch(b) ? 0 : 2) + (isDifferentCat(b) ? 0 : 1);
+    return aScore - bScore;
+  });
+  const crossRoute = crossRoutePool.slice(0, 2);
+
+  // OT defer 가상 후보
+  const otOption = {
+    id: 'D20_OT_DEFER',
+    achievement_form: 'OT에서 함께 정하고 싶다',
+    existence_form: 'MH님과 함께 천천히 찾아갑니다',
+    route: route || null,
+    category: 'OT 보류',
+    axis8_areas: [],
+    attribute_combo: '범용',
+    intensity: 'M',
+    is_defer: true
+  };
+
+  return [...sameRoute, ...crossRoute, otOption];
+}
+
+// PR #9 C1: D20 재제시 — 첫 답변 백업, 후보 재생성, D20 화면 복귀
+function rerenderD20Selection() {
+  const route = STATE.route;
+  const d20Key = `D20-${route}`;
+
+  // 1. 기존 D20 답변 백업
+  if (STATE.answers[d20Key] && !STATE.answers.D20_first) {
+    STATE.answers.D20_first = { ...STATE.answers[d20Key] };
+  }
+
+  // 2. 재제시 모드 플래그 + D20 위치로 복귀 (D_stage3의 마지막 = 5번째 = index 4)
+  STATE.D20_reconsider_mode = true;
+  STATE.currentPart = 'D_stage3';
+  const partQs = buildPhase2Order(STATE.answers, STATE.route).filter(q => q.part === 'D_stage3');
+  let d20Idx = partQs.findIndex(q => q.id && q.id.startsWith('D20-'));
+  if (d20Idx < 0) d20Idx = partQs.length - 1;
+  STATE.currentIndex = d20Idx;
+
+  gaEvent('compass_d20_reconsider_enter', { route });
+  renderCurrentQuestion();
+}
+
+// PR #9 C1: D20 재선택 후 E14를 새 D20 선택에 동기화 (extractFinalGoal 정상 동작 보장)
+function syncE14FromD20() {
+  const route = STATE.route;
+  const d20 = STATE.answers[`D20-${route}`];
+  if (!d20?.tags) return;
+  const goalId = d20.tags.goal_id || null;
+  const isDefer = goalId === 'D20_OT_DEFER' || d20.tags.is_defer === true;
+  STATE.answers.E14 = {
+    ...(STATE.answers.E14 || {}),
+    value: STATE.answers.E14?.value || 'A',
+    label: STATE.answers.E14?.label || '(D20 재선택)',
+    tags: {
+      goal_id: isDefer ? null : goalId,
+      source: isDefer ? 'undecided' : 'D20',
+      confidence: isDefer ? 'unsure' : 'committed'
+    }
+  };
+  if (isDefer) STATE.answers.E14.deferred = true;
+}
+
 // MC2 응답 → 격려 문구
 function getMC2Followup(answers) {
   const v = answers?.MC2?.value;
@@ -5352,6 +5503,26 @@ function buildQ41Text() {
 
 // D20 적응형 옵션 렌더
 function renderD20AdaptiveOptions(q) {
+  // PR #9 C1: 재제시 모드 — 다른 후보 5개 (same 2 + cross 2 + OT defer 1)
+  if (STATE.D20_reconsider_mode) {
+    const reMatched = matchGoalsForD20Reconsider(STATE.answers, STATE.route);
+    const reOptions = reMatched.map((g, i) => ({
+      label: `(${'ABCDE'[i]}) ${g.achievement_form}`,
+      value: 'ABCDE'[i],
+      tags: {
+        goal_id: g.id,
+        goal_form: 'achievement',
+        existence: g.existence_form,
+        reconsider: true,
+        cross_route: g.route !== STATE.route,
+        is_defer: g.is_defer === true
+      }
+    }));
+    q._dynamicOptions = reOptions;
+    const noticeHtml = `<div class="d20-reconsider-notice">방향을 다시 살펴봅니다. 이번엔 다른 후보도 더 신중하게 봐주세요.</div>`;
+    return noticeHtml + renderOptions(reOptions, q.id);
+  }
+
   const matched = matchGoalsForD20(STATE.answers, STATE.route);
   const dynamicOptions = matched.map((g, i) => ({
     label: `(${'ABC'[i]}) ${g.achievement_form}`,
@@ -5513,6 +5684,15 @@ function saveAndAdvance(q) {
       bTypeFlagged: STATE.bTypeFlagged,
       updatedAt: Date.now()
     });
+    // PR #9 C1: D20 재제시 모드에서 D20 답변 후 → IB#5 3/3 복귀
+    if (STATE.D20_reconsider_mode && q.id && q.id.startsWith('D20-')) {
+      STATE.D20_reconsider_mode = false;
+      syncE14FromD20();
+      gaEvent('compass_d20_reconsider_complete', {
+        new_goal_id: STATE.answers[`D20-${STATE.route}`]?.tags?.goal_id || null
+      });
+      return renderIBPostPartE();
+    }
   } else if (STATE.currentPhase === 3) {
     save('compass_phase3', {
       answers: STATE.answers,
@@ -6469,6 +6649,45 @@ function renderIBPostPartE() {
        </div>`
     : '';
 
+  // PR #9 C1: 분기 박스 (최초 진입 시에만 표시 — 이미 IB5_branch 결정되면 숨김)
+  const showBranchBox = !STATE.answers.IB5_branch;
+  const branchBoxHtml = showBranchBox ? `
+    <div class="ib5-branch-box">
+      <div class="ib5-branch-q">이 방향이 정말 당신의 진짜 갈망 같나요?</div>
+      <div class="ib5-branch-options">
+        <button class="branch-opt branch-confirm" type="button" data-choice="confirm">
+          ✓ 네, 이 방향이 맞아요
+          <span class="branch-opt-sub">Phase 3로 진행합니다</span>
+        </button>
+        <button class="branch-opt branch-reconsider" type="button" data-choice="reconsider">
+          ↻ 다른 방향도 살펴보고 싶어요
+          <span class="branch-opt-sub">D20 후보를 다시 봅니다</span>
+        </button>
+        <button class="branch-opt branch-defer" type="button" data-choice="defer">
+          ⏸ OT에서 다시 정하고 싶어요
+          <span class="branch-opt-sub">목표 확정을 보류합니다</span>
+        </button>
+      </div>
+    </div>
+  ` : '';
+
+  // OT 보류 또는 재선택 결과에 따른 보조 안내
+  const branchStatusHtml = (() => {
+    const br = STATE.answers.IB5_branch;
+    if (!br) return '';
+    if (br.value === 'defer' || br.defer_to_ot) {
+      return `<div class="extra-explore-note" style="background:#FFF7E6;border-left-color:var(--gold);">
+                <strong>목표 확정 보류:</strong> OT에서 MH님과 함께 최종 확정합니다.
+              </div>`;
+    }
+    if (br.value === 'reconsider' && STATE.answers.D20_first) {
+      return `<div class="extra-explore-note" style="background:var(--teal-light);border-left-color:var(--teal);color:var(--navy);">
+                방향을 다시 살펴보고 새 후보를 선택했습니다. 변경된 C형 목표가 위에 반영되어 있습니다.
+              </div>`;
+    }
+    return '';
+  })();
+
   const html = `
     ${goalCardHtml}
     ${identityHtml}
@@ -6477,42 +6696,87 @@ function renderIBPostPartE() {
     ${e12msgHtml}
     ${extraMsgHtml}
     ${verifyHtml}
+    ${branchStatusHtml}
+    ${branchBoxHtml}
     <p class="ib-body" style="margin-top:18px;">
       <strong>Phase 2가 마무리되었습니다.</strong> 다음은 <em>Phase 3</em> — 100일 동안의 실행 계획을 그려갑니다.
     </p>
   `;
 
-  renderInsightBreakShell({
+  const proceedToPhase3 = () => {
+    const fg = extractFinalGoal(STATE.answers);
+    const ps = calculatePassionScore(STATE.answers);
+    gaEvent('compass_phase_complete', {
+      phase: 2,
+      passion: ps.percentage,
+      passion_level: ps.level,
+      final_goal_id: fg.goalId || 'undecided',
+      confidence: fg.confidence,
+      extra_explore_e: countExtraExplorePartE(STATE.answers),
+      ib5_branch: STATE.answers.IB5_branch?.value || 'confirm',
+      defer_to_ot: STATE.answers.IB5_branch?.defer_to_ot ? 1 : 0
+    });
+    save('compass_phase2', {
+      answers: STATE.answers,
+      route: STATE.route,
+      bTypeFlagged: STATE.bTypeFlagged,
+      finalGoal: fg,
+      passion: ps,
+      extraExploreE: countExtraExplorePartE(STATE.answers),
+      identityArea: STATE.answers.E9?.tags?.identity_area || null,
+      identityScene: STATE.answers.E10?.tags?.identity_scene || null,
+      identityFocus: STATE.answers.E11?.tags?.identity_focus || null,
+      ib5_branch: STATE.answers.IB5_branch?.value || 'confirm',
+      defer_to_ot: !!STATE.answers.IB5_branch?.defer_to_ot,
+      completedAt: Date.now()
+    });
+    enterPhase3();
+  };
+
+  const overlay = renderInsightBreakShell({
     number: 6,
     label: "Phase 2 · 인사이트 브레이크 3/3",
     title: title,
     contentHtml: html,
     ctaText: "Phase 3 — 100일 실행 계획으로",
     saveBtn: true,
-    onContinue: () => {
-      gaEvent('compass_phase_complete', {
-        phase: 2,
-        passion: passion.percentage,
-        passion_level: passion.level,
-        final_goal_id: finalGoal.goalId || 'undecided',
-        confidence: finalGoal.confidence,
-        extra_explore_e: extraE
-      });
-      save('compass_phase2', {
-        answers: STATE.answers,
-        route: STATE.route,
-        bTypeFlagged: STATE.bTypeFlagged,
-        finalGoal,
-        passion,
-        extraExploreE: extraE,
-        identityArea: STATE.answers.E9?.tags?.identity_area || null,
-        identityScene: STATE.answers.E10?.tags?.identity_scene || null,
-        identityFocus: STATE.answers.E11?.tags?.identity_focus || null,
-        completedAt: Date.now()
-      });
-      enterPhase3();
-    }
+    onContinue: proceedToPhase3
   });
+
+  // PR #9 C1: 분기 옵션 이벤트 바인딩
+  if (showBranchBox && overlay) {
+    // 분기 박스 표시 중에는 기본 CTA 비활성 + 안내 변경
+    const cta = overlay.querySelector('#ib-cta');
+    const wait = overlay.querySelector('#ib-wait');
+    if (cta) cta.style.display = 'none';
+    if (wait) wait.textContent = '위 분기 중 하나를 선택해주세요.';
+
+    overlay.querySelectorAll('.branch-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const choice = btn.dataset.choice;
+        STATE.answers.IB5_branch = STATE.answers.IB5_branch || {};
+        STATE.answers.IB5_branch.value = choice;
+        gaEvent('compass_ib5_branch', { choice });
+
+        if (choice === 'confirm') {
+          overlay.remove();
+          proceedToPhase3();
+        } else if (choice === 'reconsider') {
+          // D20 재제시 — overlay 제거 후 D20 화면으로
+          overlay.remove();
+          rerenderD20Selection();
+        } else if (choice === 'defer') {
+          STATE.answers.IB5_branch.defer_to_ot = true;
+          STATE.answers.E14 = {
+            ...(STATE.answers.E14 || {}),
+            deferred: true
+          };
+          overlay.remove();
+          proceedToPhase3();
+        }
+      });
+    });
+  }
 
   // 미터 바 0%→실제값 애니메이션
   requestAnimationFrame(() => {
@@ -6765,6 +7029,7 @@ function renderIB8() {
         <div class="ib8-h">최종 C형 목표</div>
         <div class="ib8-t">${escapeHtml(finalGoal.statement || 'OT에서 함께 정합니다')}</div>
         ${finalGoal.beingForm ? `<div class="ib8-sub">→ ${escapeHtml(finalGoal.beingForm)}</div>` : ''}
+        ${(a.IB5_branch?.defer_to_ot || a.IB5_branch?.value === 'defer') ? `<div class="ib8-sub" style="margin-top:8px;color:var(--gold);font-weight:700;">⏸ OT에서 최종 확정</div>` : ''}
       </div>
 
       <!-- 3. 갈망 영역 + 루트 -->
@@ -6985,6 +7250,11 @@ function detectFlags(answers) {
   if (['different','adjusted','unsure'].includes(answers?.F13?.tags?.axis8_verify)) {
     if (out.color !== 'red') out.color = 'yellow';
     out.reasons.push('F13 axis8 사용자 검증 신호');
+  }
+  // PR #9 C1: IB#5 3/3 분기에서 "OT에서 다시 정하고 싶어요" 선택
+  if (answers?.IB5_branch?.defer_to_ot === true || answers?.IB5_branch?.value === 'defer') {
+    if (out.color !== 'red') out.color = 'yellow';
+    out.reasons.push('IB#5 분기: OT에서 목표 확정 보류');
   }
   return out;
 }

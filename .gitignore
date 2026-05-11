@@ -16,6 +16,7 @@ docx_extracted.txt
 node_modules/
 dist/
 .netlify/
+.tmp/
 
 # Local debug/simulation harnesses (keep for re-use, don't publish)
 _sim_*.js
