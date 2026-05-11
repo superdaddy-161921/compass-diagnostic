@@ -424,6 +424,7 @@
     background: var(--white); border-radius: 14px;
     padding: 20px; margin-bottom: 16px;
     border: 1px solid var(--border);
+    text-align: center; /* PR #9 C8-1: 결과 요약 카드 가운데 정렬 (김재환 피드백) */
   }
   .summary-block .h {
     font-size: 12px; font-weight: 700; color: var(--teal);
@@ -1068,8 +1069,8 @@ const QUESTIONS = {
       // 축 1: 변화 방향 (Q13~Q15)
       { id: "Q13", type: "slider", part: "B2", axis: "axis1",
         text: "슬라이더를 움직여 주세요.",
-        leftLabel: "지금 삶에서 무언가를 없애고 싶다",
-        rightLabel: "무언가를 새로 더하고 싶다" },
+        leftLabel: "지금 삶에서 줄이고 싶은 것이 있다",
+        rightLabel: "새로 시작하고 싶은 것이 있다" },
       { id: "Q14", type: "forced", part: "B2",
         text: "둘 중 하나만 가능하다면?",
         options: [
@@ -7360,7 +7361,7 @@ function showCompassFarewell(uuid) {
         </div>
       </div>
       <div class="card" style="margin:16px 0;text-align:left;background:var(--teal-light);">
-        <div style="font-size:11px;font-weight:700;color:var(--teal);margin-bottom:6px;letter-spacing:0.05em;">결과 ID</div>
+        <div style="font-size:11px;font-weight:700;color:var(--teal);margin-bottom:6px;letter-spacing:0.05em;">결과 ID (필요 시 OT에서 알려주세요)</div>
         <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--navy);word-break:break-all;">${escapeHtml(uuid)}</div>
       </div>
       <div class="actions" style="flex-direction:column;">
