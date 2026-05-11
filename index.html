@@ -668,6 +668,33 @@
   .branch-reconsider:hover { border-color: var(--gold); background: #FFFBEA; }
   .branch-defer:hover      { border-color: var(--text-secondary); background: #F1F5F9; }
 
+  /* PR #9 C3 — Phase 3 슬라이더 ≥ 8 안내 (g-already-high / ga-aligned-high / ga-gap-warning) */
+  .g-already-high, .ga-aligned-high, .ga-gap-warning {
+    display: flex; gap: 12px;
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 13.5px; line-height: 1.5;
+  }
+  .g-already-high {
+    background: var(--teal-light);
+    border-left: 4px solid var(--teal);
+  }
+  .ga-aligned-high {
+    background: #ECFDF5;
+    border-left: 4px solid #047857;
+    color: var(--navy);
+  }
+  .ga-gap-warning {
+    background: #FFF7E6;
+    border-left: 4px solid var(--gold);
+    color: var(--navy);
+  }
+  .g-already-icon { font-size: 20px; line-height: 1; }
+  .g-already-text strong { display: block; font-weight: 700; color: var(--teal); margin-bottom: 4px; }
+  .g-already-text p { margin: 0; font-weight: 500; color: var(--text-secondary); }
+  .g-already-text em { font-style: normal; color: var(--teal); font-weight: 700; }
+
   /* PR #9 C2 — D20 "C형 목표 확정 순간" 안내 박스 */
   .d20-pivot-notice {
     display: flex; gap: 12px;
@@ -5383,6 +5410,8 @@ function renderQuestion(q, questionNum, totalNum) {
         $('#next-btn').disabled = false;
         // 저장은 next 누를 때
         b.dataset.picked = '1';
+        // PR #9 C3: GA 문항 + 현재 슬라이더 ≥ 8 → 일치/불일치 안내
+        maybeRenderGaHighNotice(q, b);
       });
     });
   } else if (q.type === 'slider') {
@@ -5400,6 +5429,8 @@ function renderQuestion(q, questionNum, totalNum) {
     const slider = $('#slider');
     const out = $('#slider-val');
     const anchorEl = document.getElementById('slider-anchor');
+    const highNoticeEl = document.getElementById('g-already-high');
+    const isCurrentG = q.phase_marker === 'current' && q.area && q.part === 'G';
     const renderAnchor = (v) => {
       if (!anchorEl) return;
       const a = getAnchorFor(q.area, v);
@@ -5415,6 +5446,10 @@ function renderQuestion(q, questionNum, totalNum) {
       out.textContent = v;
       slider.style.setProperty('--pct', ((v-1) / 9 * 100) + '%');
       renderAnchor(v);
+      // PR #9 C3: 현재 상태 슬라이더 ≥ 8 안내 표시/숨김
+      if (highNoticeEl && isCurrentG) {
+        highNoticeEl.hidden = !(v >= 8);
+      }
       $('#next-btn').disabled = false;
     };
     slider.addEventListener('input', update);
@@ -5501,6 +5536,17 @@ function renderSlider10(q) {
   const anchorHtml = showAnchor
     ? `<div class="slider-anchor" id="slider-anchor" data-area="${escapeHtml(q.area)}"></div>`
     : '';
+  // PR #9 C3: 현재 상태 슬라이더(G1·G3·G5·G7·G9)가 ≥ 8일 때 안내 박스
+  const isCurrentG = q.phase_marker === 'current' && q.area && q.part === 'G';
+  const highNoticeHtml = isCurrentG ? `
+    <div class="g-already-high" id="g-already-high" hidden>
+      <div class="g-already-icon">💡</div>
+      <div class="g-already-text">
+        <strong>이미 잘 가고 계시네요</strong>
+        <p>이 영역은 100일 동안 <em>유지</em>하거나, 다른 영역에 집중할 수 있습니다.<br>OT에서 함께 다듬어보세요.</p>
+      </div>
+    </div>
+  ` : '';
   return `
     <div class="slider-wrap">
       <div class="slider-labels">
@@ -5511,8 +5557,46 @@ function renderSlider10(q) {
       <div class="slider-ticks slider-ticks-10">${ticks}</div>
       <div class="slider-value">선택: <strong id="slider-val">5</strong> / 10</div>
       ${anchorHtml}
+      ${highNoticeHtml}
     </div>
   `;
+}
+
+// PR #9 C3: 영역 → 해당 영역의 "현재 상태" 슬라이더 ID
+const AREA_TO_CURRENT_SLIDER = {
+  health: 'G1', finance: 'G3', growth: 'G5', relationship: 'G7', contribution: 'G9'
+};
+
+// PR #9 C3: GA 문항 + 현재 슬라이더 ≥ 8 → 일치/불일치 안내 삽입
+function maybeRenderGaHighNotice(q, pickedBtn) {
+  if (!q.id || !q.id.startsWith('GA') || !q.area) return;
+  const currentSliderId = AREA_TO_CURRENT_SLIDER[q.area];
+  if (!currentSliderId) return;
+  const currentValue = STATE.answers[currentSliderId]?.sliderValue;
+  if (typeof currentValue !== 'number' || currentValue < 8) return;
+
+  // 선택된 옵션의 ga_anchor
+  const idx = parseInt(pickedBtn.dataset.idx, 10);
+  const opt = (q.options || [])[idx];
+  const gaAnchor = opt?.tags?.ga_anchor;
+  if (typeof gaAnchor !== 'number') return;
+
+  const card = document.querySelector('.qcard');
+  if (!card) return;
+  const existing = document.getElementById('ga-high-notice');
+  if (existing) existing.remove();
+
+  let noticeHtml = '';
+  if (gaAnchor >= 7) {
+    noticeHtml = `<div class="ga-aligned-high" id="ga-high-notice">
+      주관 평가(슬라이더)와 실제 행동(이 질문)이 일치합니다. 이 영역은 이미 단단한 기반이 있어요.
+    </div>`;
+  } else if (gaAnchor <= 3) {
+    noticeHtml = `<div class="ga-gap-warning" id="ga-high-notice">
+      주관적으로는 잘 가고 있다고 느끼시지만, 실제 행동 빈도가 낮을 수 있어요. OT에서 함께 확인해봅시다.
+    </div>`;
+  }
+  if (noticeHtml) card.insertAdjacentHTML('beforeend', noticeHtml);
 }
 
 // 슬라이더 값 + 영역 → 앵커 정보 가져오기
