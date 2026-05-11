@@ -668,6 +668,41 @@
   .branch-reconsider:hover { border-color: var(--gold); background: #FFFBEA; }
   .branch-defer:hover      { border-color: var(--text-secondary); background: #F1F5F9; }
 
+  /* PR #9 C2 — D20 "C형 목표 확정 순간" 안내 박스 */
+  .d20-pivot-notice {
+    display: flex; gap: 12px;
+    margin: 0 0 20px;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--teal-light) 0%, #fff 100%);
+    border-left: 4px solid var(--teal);
+    border-radius: 10px;
+  }
+  .d20-pivot-icon { font-size: 24px; line-height: 1; }
+  .d20-pivot-text strong {
+    display: block;
+    font-size: 13px; font-weight: 700;
+    color: var(--teal);
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  .d20-pivot-text p {
+    font-size: 14px; font-weight: 600;
+    color: var(--navy);
+    line-height: 1.5;
+    margin: 0 0 6px;
+  }
+  .d20-pivot-text p em {
+    font-style: normal;
+    color: var(--teal);
+    font-weight: 700;
+  }
+  .d20-pivot-sub {
+    font-weight: 500 !important;
+    color: var(--text-secondary) !important;
+    font-size: 13px !important;
+  }
+
   /* PR #9 C1 — D20 재제시 안내 */
   .d20-reconsider-notice {
     background: var(--teal-light);
@@ -5281,9 +5316,26 @@ function renderQuestion(q, questionNum, totalNum) {
     qtext = replacePlaceholders(q.text, STATE);
   }
 
+  // PR #9 C2: D20 "C형 목표 확정 순간" 안내 박스 (D20 문항에서만 표시)
+  const isD20 = STATE.currentPart === 'D_stage3' && q.id && q.id.startsWith('D20-');
+  const d20PivotHtml = isD20 ? `
+    <div class="d20-pivot-notice">
+      <div class="d20-pivot-icon">🎯</div>
+      <div class="d20-pivot-text">
+        <strong>C형 목표 확정 순간</strong>
+        ${STATE.D20_reconsider_mode
+          ? `<p>방향을 다시 살펴보는 중입니다. 이번엔 다른 후보도 신중하게 봐주세요.</p>
+             <p class="d20-pivot-sub">새 선택이 당신의 <em>C형 목표</em>로 갱신되고, Phase 3 진행에 반영됩니다.</p>`
+          : `<p>지금 선택이 당신의 <em>C형 목표</em>가 됩니다.<br>Phase 3와 100일 챌린지가 이 목표를 중심으로 진행됩니다.</p>
+             <p class="d20-pivot-sub">신중하게, 하지만 부담 없이 가장 끌리는 것을 골라주세요. OT에서 함께 다듬을 수 있습니다.</p>`}
+      </div>
+    </div>
+  ` : '';
+
   body += `
     <div class="qcard" data-qid="${q.id}">
       <div class="qmeta">${partMeta} · <span class="qnumber">${questionNum}/${totalNum}</span></div>
+      ${d20PivotHtml}
       <div class="qtext ${(q.type === 'slider' || q.type === 'slider10') ? 'small' : ''}">${escapeHtml(qtext)}</div>
   `;
 
