@@ -1805,7 +1805,7 @@ const PHASE3_G_REFLECTION = [
     ]
   },
   { id: "G12", type: "single", part: "G",
-    text: "5개 영역 점수를 보면서 새롭게 느낀 것이 있나요?",
+    text: "방금 본 5영역 차트를 보면서 새롭게 느낀 것이 있나요?",
     options: [
       { label: "(A) C형 목표의 중요성이 다시 확인되었다",          value: "A", tags: { g12_reflect: "confirmed" } },
       { label: "(B) 여러 영역이 함께 연결되어 있다는 걸 느꼈다",   value: "B", tags: { g12_reflect: "interconnected" } },
@@ -5152,6 +5152,7 @@ function renderIntro() {
         STATE.tournament = savedP1?.tournament || null;
         STATE.axes = savedP1?.axes || null;
         STATE.currentPhase = 3;
+        STATE.IB7_shown = !!savedP3.IB7_shown;  // PR #9 C7
         resumePhase3();
       } else if (hasP2) {
         STATE.answers = savedP2.answers;
@@ -5290,6 +5291,13 @@ function resumePhase3() {
   STATE.currentPart = q.part;
   const partOrder = order.filter(x => x.part === q.part);
   STATE.currentIndex = partOrder.findIndex(x => x.id === q.id);
+
+  // PR #9 C7: G11 응답 + G12 미응답 + IB#7 미표시 → 이어하기 시 IB#7 먼저
+  if (q.id === 'G12' && STATE.answers.G11 && !STATE.IB7_shown) {
+    STATE.IB7_shown = true;
+    if (typeof renderIB7 === 'function') return renderIB7();
+  }
+
   renderCurrentQuestion();
 }
 
@@ -5848,6 +5856,7 @@ function saveAndAdvance(q) {
       answers: STATE.answers,
       route: STATE.route,
       bTypeFlagged: STATE.bTypeFlagged,
+      IB7_shown: !!STATE.IB7_shown,
       updatedAt: Date.now()
     });
   }
@@ -5862,6 +5871,17 @@ function goNext(currentQ) {
   else                                order = buildPhase1Order(STATE.answers);
   const partQs = order.filter(q => q.part === STATE.currentPart);
   const nextIndex = STATE.currentIndex + 1;
+
+  // PR #9 C7: G11 응답 후 → IB#7 → G12 (구조 변경)
+  // 기존: G1~GA → G11 → G12 → IB#7 → Part H
+  // 변경: G1~GA → G11 → IB#7 → G12 → Part H
+  if (STATE.currentPhase === 3 && currentQ?.id === 'G11' && !STATE.IB7_shown) {
+    const nextQ = partQs[nextIndex];
+    if (nextQ?.id === 'G12') {
+      STATE.IB7_shown = true;
+      if (typeof renderIB7 === 'function') return renderIB7();
+    }
+  }
 
   // Part 내 다음 문항
   if (nextIndex < partQs.length) {
@@ -5926,7 +5946,26 @@ function goNext(currentQ) {
   // Phase 3 경계
   if (STATE.currentPhase === 3) {
     if (STATE.currentPart === 'G') {
-      // Part G 종료 → IB#7 (5영역 갭 레이더 + C형 일치 여부)
+      // PR #9 C7: G12 응답 후 Part G 종료 → IB#7 이미 표시된 상태 → 바로 Part H
+      // (IB#7은 G11 ↔ G12 사이에서 이미 표시됨)
+      if (STATE.IB7_shown) {
+        gaEvent('compass_part_complete', { phase: 3, part: 'G' });
+        save('compass_phase3', {
+          answers: STATE.answers,
+          route: STATE.route,
+          bTypeFlagged: STATE.bTypeFlagged,
+          IB7_shown: true,
+          partGCompletedAt: Date.now(),
+          topGapArea: getTopGapArea(STATE.answers)
+        });
+        STATE.currentPart = 'H';
+        STATE.currentIndex = 0;
+        if (typeof PHASE3_H === 'undefined' || !Array.isArray(PHASE3_H) || PHASE3_H.length === 0) {
+          return showPhase3Placeholder();
+        }
+        return renderCurrentQuestion();
+      }
+      // Fallback (IB#7 미표시 상태 — 예외 케이스): 기존 흐름
       if (typeof renderIB7 === 'function') return renderIB7();
       return showPhase3Placeholder();
     }
@@ -6988,24 +7027,42 @@ function renderIB7() {
     </div>
   `;
 
+  // PR #9 C7: G12 미응답 → G12로 (새 흐름), G12 응답 완료 → Part H (기존 fallback)
+  const g12Answered = !!STATE.answers.G12;
+  const ctaText = g12Answered ? 'Part H로 — 100일 방향 정하기' : '계속하기 — G12로';
+
   renderInsightBreakShell({
     number: 7,
     label: 'Phase 3 · 인사이트 브레이크 1/2',
     title: '5영역의 현재와 100일 후',
     contentHtml: html,
-    ctaText: 'Part H로 — 100일 방향 정하기',
+    ctaText: ctaText,
     onContinue: () => {
-      gaEvent('compass_part_complete', { phase: 3, part: 'G' });
       save('compass_phase3', {
         answers: STATE.answers,
         route: STATE.route,
         bTypeFlagged: STATE.bTypeFlagged,
-        partGCompletedAt: Date.now(),
-        topGapArea: topArea
+        IB7_shown: true,
+        topGapArea: topArea,
+        updatedAt: Date.now()
       });
+
+      // PR #9 C7: G12 미응답 → G12로 이동 (새 흐름)
+      if (!STATE.answers.G12) {
+        const order = buildPhase3Order(STATE.answers);
+        const partQs = order.filter(q => q.part === 'G');
+        const g12Idx = partQs.findIndex(q => q.id === 'G12');
+        if (g12Idx >= 0) {
+          STATE.currentPart = 'G';
+          STATE.currentIndex = g12Idx;
+          return renderCurrentQuestion();
+        }
+      }
+
+      // Part H로 (G12 이미 응답된 경우 — review 등)
+      gaEvent('compass_part_complete', { phase: 3, part: 'G' });
       STATE.currentPart = 'H';
       STATE.currentIndex = 0;
-      // PHASE3_H가 아직 없으면 (C5 이전) placeholder
       if (typeof PHASE3_H === 'undefined' || !Array.isArray(PHASE3_H) || PHASE3_H.length === 0) {
         return showPhase3Placeholder();
       }
