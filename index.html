@@ -1412,8 +1412,8 @@ const QUESTIONS = {
           { label: "(C) 투자 공부, 재테크 관련 활동",         value: "C", tags: { axis8: "finance" } },
           { label: "(D) 가족이나 소중한 사람과 보내는 시간",   value: "D", tags: { axis8: "relationship" } },
           { label: "(E) 취미나 창작 활동",                    value: "E", tags: { axis8: "contribution" } },
-          { label: "(G) 직장/업무",                          value: "G", tags: { axis8: "growth" } },
-          { label: "(F) 딱히 없다",                          value: "F", tags: { axis8: "none" } }
+          { label: "(F) 직장/업무",                          value: "F", tags: { axis8: "growth" } },
+          { label: "(G) 딱히 없다",                          value: "G", tags: { axis8: "none" } }
         ]
       },
       { id: "QB1B", type: "slider", part: "B1",
@@ -1563,7 +1563,7 @@ const QUESTIONS = {
     partF: [
       // ====== 1겹: Phase 1 행동 데이터 교차 ======
       { id: "F1", type: "single", part: "F",
-        condition: { questionId: "QB1", valueNot: "F" },
+        condition: { questionId: "QB1", valueNot: "G" },
         text: "Phase 1에서 당신이 실제로 가장 많은 시간을 쓴 활동은 [QB1 결과]였습니다. 지금 세우려는 목표와 관련이 있나요?",
         options: [
           { label: "(A) 직접적으로 관련 있다 — 이미 행동으로 옮기고 있었다", value: "A", tags: { consistency: 1.0 } },
@@ -4512,9 +4512,9 @@ function calculateAreaCounts(answers, qIds) {
   qIds.forEach(id => {
     const ans = answers[id];
     if (!ans?.tags) return;
-    // QB1 직장/업무(G) 응답 + QB1B 자발성 ≤ 2 → axis8 카운트에서 제외
+    // QB1 직장/업무(F) 응답 + QB1B 자발성 ≤ 2 → axis8 카운트에서 제외
     // (강제로 하는 직장은 갈망 영역으로 간주하지 않음)
-    if (id === 'QB1' && ans.value === 'G') {
+    if (id === 'QB1' && ans.value === 'F') {
       const v = answers['QB1B']?.sliderValue;
       if (typeof v === 'number' && v <= 2) return;
     }
