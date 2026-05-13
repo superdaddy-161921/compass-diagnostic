@@ -785,6 +785,63 @@
   @keyframes toastFadeIn { to { opacity: 1; } }
   @keyframes toastFadeOut { to { opacity: 0; } }
 
+  /* PR #10 C3 — 같은 이름 입력 시 다이얼로그 */
+  .resume-dialog-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+  }
+  .resume-dialog {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px 22px;
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  }
+  .resume-dialog h2 {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--navy);
+    margin: 0 0 10px;
+    line-height: 1.45;
+  }
+  .resume-dialog p {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 0 0 18px;
+    line-height: 1.55;
+  }
+  .resume-dialog-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .dlg-btn {
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--navy);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .dlg-btn-resume { border-color: var(--teal); color: var(--teal); }
+  .dlg-btn-resume:hover { background: var(--teal-light); }
+  .dlg-btn-restart { border-color: var(--gold); color: #92400E; }
+  .dlg-btn-restart:hover { background: #FFF7E6; }
+  .dlg-btn-view { border-color: var(--teal); background: var(--teal); color: #fff; }
+  .dlg-btn-view:hover { background: #047857; border-color: #047857; }
+
   /* Phase 1 complete */
   .complete {
     text-align: center; padding: 48px 16px;
@@ -5140,26 +5197,50 @@ function renderIntro() {
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !btn.disabled) btn.click();
   });
+  // 저장된 진행 기록 로드 (start 버튼 핸들러 + resume 배너에서 공유)
+  const savedP1 = load('compass_phase1');
+  const savedP2 = load('compass_phase2');
+  const savedP3 = load('compass_phase3');
+  const savedMeta = load('compass_meta');
+  const hasP1 = savedP1?.answers && Object.keys(savedP1.answers).length > 0;
+  const hasP2 = savedP2?.answers && Object.keys(savedP2.answers).length > 0;
+  const hasP3 = savedP3?.answers && Object.keys(savedP3.answers).length > 0;
+  const hasAnyData = hasP1 || hasP2 || hasP3;
+  const isCompleted = !!savedP3?.completedAt;
+  const dialogCtx = { savedP1, savedP2, savedP3 };
+
   btn.addEventListener('click', () => {
-    STATE.participantName = input.value.trim();
+    const typedName = input.value.trim();
+    if (!typedName) return;
+    // PR #10 C3 — 같은 이름 + 기존 기록이면 다이얼로그 표시
+    const savedNameTrim = (savedMeta?.name || '').trim();
+    const sameName = hasAnyData && savedNameTrim && savedNameTrim === typedName;
+    if (sameName && isCompleted) {
+      return showResultOrRestartDialog(typedName, dialogCtx);
+    }
+    if (sameName) {
+      return showResumeOrRestartDialog(typedName, dialogCtx);
+    }
+    // 다른 이름인데 기존 기록이 남아있으면 stale 데이터 제거 후 시작
+    if (hasAnyData) {
+      localStorage.removeItem('compass_phase1');
+      localStorage.removeItem('compass_phase2');
+      localStorage.removeItem('compass_phase3');
+      gaEvent('compass_start_different_name');
+    }
+    resetSTATE();
+    STATE.participantName = typedName;
     STATE.startedAt = Date.now();
     save('compass_meta', {
       name: STATE.participantName,
       startedAt: STATE.startedAt
     });
     gaEvent('compass_start', { phase: 1 });
+    STATE.currentPhase = 1;
     STATE.currentPart = 'A';
     STATE.currentIndex = 0;
     renderCurrentQuestion();
   });
-
-  // 재시작 옵션 — Phase 1·2·3 저장 데이터 있으면 안내
-  const savedP1 = load('compass_phase1');
-  const savedP2 = load('compass_phase2');
-  const savedP3 = load('compass_phase3');
-  const hasP1 = savedP1?.answers && Object.keys(savedP1.answers).length > 0;
-  const hasP2 = savedP2?.answers && Object.keys(savedP2.answers).length > 0;
-  const hasP3 = savedP3?.answers && Object.keys(savedP3.answers).length > 0;
 
   if (hasP1 || hasP2 || hasP3) {
     const meta = load('compass_meta');
@@ -6047,6 +6128,141 @@ function goNext(currentQ) {
       return showPhase3Placeholder();
     }
   }
+}
+
+// PR #10 C3 — STATE 초기화 (createInitialState 동등)
+function resetSTATE() {
+  STATE.participantName = "";
+  STATE.answers = {};
+  STATE.currentScreen = "intro";
+  STATE.currentPhase = 1;
+  STATE.currentPart = null;
+  STATE.currentIndex = 0;
+  STATE.tournament = null;
+  STATE.axes = null;
+  STATE.route = null;
+  STATE.bTypeFlagged = false;
+  STATE.startedAt = null;
+  STATE.D20_reconsider_mode = false;
+  STATE.IB7_shown = false;
+}
+
+// PR #10 C3 — 같은 이름 입력 시 다이얼로그 (미완료 진행 기록)
+function showResumeOrRestartDialog(name, ctx) {
+  const overlay = document.createElement('div');
+  overlay.className = 'resume-dialog-overlay';
+  overlay.innerHTML = `
+    <div class="resume-dialog">
+      <h2>${escapeHtml(name)}님, 이전 진행 기록이 있습니다</h2>
+      <p>이어서 진행하시겠어요? 새로 시작하시겠어요?</p>
+      <div class="resume-dialog-buttons">
+        <button class="dlg-btn dlg-btn-resume" type="button" data-action="resume">↻ 이어서 진행</button>
+        <button class="dlg-btn dlg-btn-restart" type="button" data-action="restart">↺ 새로 시작</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  gaEvent('compass_name_reuse_dialog', { kind: 'incomplete' });
+  overlay.querySelector('[data-action="resume"]').addEventListener('click', () => {
+    gaEvent('compass_name_reuse_choice', { kind: 'incomplete', choice: 'resume' });
+    overlay.remove();
+    resumeFromIntroContext(name, ctx);
+  });
+  overlay.querySelector('[data-action="restart"]').addEventListener('click', () => {
+    gaEvent('compass_name_reuse_choice', { kind: 'incomplete', choice: 'restart' });
+    overlay.remove();
+    restartDiagnosis(name);
+  });
+}
+
+// PR #10 C3 — 같은 이름 입력 시 다이얼로그 (완료 기록)
+function showResultOrRestartDialog(name, ctx) {
+  const overlay = document.createElement('div');
+  overlay.className = 'resume-dialog-overlay';
+  overlay.innerHTML = `
+    <div class="resume-dialog">
+      <h2>${escapeHtml(name)}님, 이전 완료 기록이 있습니다</h2>
+      <p>이전 결과를 다시 보시거나, 새로 진단을 시작하실 수 있습니다.</p>
+      <div class="resume-dialog-buttons">
+        <button class="dlg-btn dlg-btn-view" type="button" data-action="view">🎯 이전 결과 보기</button>
+        <button class="dlg-btn dlg-btn-restart" type="button" data-action="restart">↺ 새로 시작</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  gaEvent('compass_name_reuse_dialog', { kind: 'completed' });
+  overlay.querySelector('[data-action="view"]').addEventListener('click', () => {
+    gaEvent('compass_name_reuse_choice', { kind: 'completed', choice: 'view' });
+    overlay.remove();
+    viewPreviousResult(name, ctx);
+  });
+  overlay.querySelector('[data-action="restart"]').addEventListener('click', () => {
+    gaEvent('compass_name_reuse_choice', { kind: 'completed', choice: 'restart' });
+    overlay.remove();
+    restartDiagnosis(name);
+  });
+}
+
+// PR #10 C3 — "이어서 진행" 선택: cross-phase 검증 후 적절한 위치로 복귀
+function resumeFromIntroContext(name, ctx) {
+  STATE.participantName = name;
+  try { sessionStorage.setItem('compass_resume_pending', '1'); } catch(e) {}
+  const combined = Object.assign(
+    {},
+    ctx.savedP1?.answers || {},
+    ctx.savedP2?.answers || {},
+    ctx.savedP3?.answers || {}
+  );
+  const route = ctx.savedP3?.route || ctx.savedP2?.route || null;
+  const target = findFirstUnansweredAcrossPhases(combined, route);
+  STATE.answers = combined;
+  STATE.route = route;
+  STATE.bTypeFlagged = !!(ctx.savedP3?.bTypeFlagged || ctx.savedP2?.bTypeFlagged);
+  STATE.D20_reconsider_mode = !!ctx.savedP2?.D20_reconsider_mode;
+  STATE.tournament = ctx.savedP1?.tournament || null;
+  STATE.axes = ctx.savedP1?.axes || null;
+  STATE.IB7_shown = !!ctx.savedP3?.IB7_shown;
+  STATE.currentPhase = target.phase;
+  if (target.phase === 1) return resumeFromAnswers();
+  if (target.phase === 2) return resumePhase2();
+  return resumePhase3();
+}
+
+// PR #10 C3 — "새로 시작" 선택: localStorage 비우고 깨끗한 진단 시작
+function restartDiagnosis(name) {
+  localStorage.removeItem('compass_phase1');
+  localStorage.removeItem('compass_phase2');
+  localStorage.removeItem('compass_phase3');
+  resetSTATE();
+  STATE.participantName = name;
+  STATE.startedAt = Date.now();
+  save('compass_meta', { name: name, startedAt: STATE.startedAt });
+  gaEvent('compass_start', { phase: 1, fresh: 1 });
+  STATE.currentPhase = 1;
+  STATE.currentPart = 'A';
+  STATE.currentIndex = 0;
+  renderCurrentQuestion();
+}
+
+// PR #10 C3 — "이전 결과 보기" 선택: 완료된 진단 상태 복원 후 IB8 결과 화면
+function viewPreviousResult(name, ctx) {
+  STATE.participantName = name;
+  const combined = Object.assign(
+    {},
+    ctx.savedP1?.answers || {},
+    ctx.savedP2?.answers || {},
+    ctx.savedP3?.answers || {}
+  );
+  STATE.answers = combined;
+  STATE.route = ctx.savedP3?.route || ctx.savedP2?.route || null;
+  STATE.bTypeFlagged = !!(ctx.savedP3?.bTypeFlagged || ctx.savedP2?.bTypeFlagged);
+  STATE.tournament = ctx.savedP1?.tournament || null;
+  STATE.axes = ctx.savedP1?.axes || null;
+  STATE.IB7_shown = true;
+  STATE.currentPhase = 3;
+  if (typeof renderIB8 === 'function') return renderIB8();
+  // 폴백 — IB8 미정의면 그냥 resumePhase3
+  return resumePhase3();
 }
 
 // PR #10 C2 — 모든 Phase 통합 order에서 첫 미응답 문항 위치 (이어하기 점프 방지)
