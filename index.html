@@ -765,6 +765,26 @@
     color: var(--text-secondary) !important;
   }
 
+  /* PR #10 C2 — 이어하기 점프 보정 토스트 */
+  .resume-notice-toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 20px;
+    background: var(--navy);
+    color: #fff;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 9999;
+    opacity: 0;
+    animation: toastFadeIn 0.3s forwards, toastFadeOut 0.3s 3.7s forwards;
+  }
+  @keyframes toastFadeIn { to { opacity: 1; } }
+  @keyframes toastFadeOut { to { opacity: 0; } }
+
   /* Phase 1 complete */
   .complete {
     text-align: center; padding: 48px 16px;
@@ -5167,29 +5187,43 @@ function renderIntro() {
       STATE.participantName = name;
       // 이어하기 배너 표시 플래그 (renderQuestion 첫 호출 시 1회 표시)
       try { sessionStorage.setItem('compass_resume_pending', '1'); } catch(e) {}
-      // Phase 3 우선, 없으면 2, 없으면 1
-      if (hasP3) {
-        STATE.answers = savedP3.answers;
-        STATE.route = savedP3.route || savedP2?.route || null;
-        STATE.bTypeFlagged = !!(savedP3.bTypeFlagged || savedP2?.bTypeFlagged);
-        STATE.tournament = savedP1?.tournament || null;
-        STATE.axes = savedP1?.axes || null;
-        STATE.currentPhase = 3;
-        STATE.IB7_shown = !!savedP3.IB7_shown;  // PR #9 C7
-        resumePhase3();
-      } else if (hasP2) {
-        STATE.answers = savedP2.answers;
-        STATE.route = savedP2.route;
-        STATE.bTypeFlagged = !!savedP2.bTypeFlagged;
-        STATE.D20_reconsider_mode = !!savedP2.D20_reconsider_mode;  // PR #10 C1
-        STATE.tournament = savedP1?.tournament || null;
-        STATE.axes = savedP1?.axes || null;
-        STATE.currentPhase = 2;
-        resumePhase2();
+
+      // PR #10 C2 — 통합 answers로부터 cross-phase 검증해 미완료 Part 점프 방지
+      // 단순히 "가장 높은 Phase 저장" 기준으로 분기하면, stale compass_phase3가 남아있을 때
+      // 미완료 Part F에서 Part G로 점프하는 버그 발생 (라운드 4 명진 보고).
+      const combinedAnswers = Object.assign(
+        {},
+        savedP1?.answers || {},
+        savedP2?.answers || {},
+        savedP3?.answers || {}
+      );
+      const restoredRoute = savedP3?.route || savedP2?.route || null;
+      const target = findFirstUnansweredAcrossPhases(combinedAnswers, restoredRoute);
+      const naivePhase = hasP3 ? 3 : (hasP2 ? 2 : 1);
+
+      STATE.answers = combinedAnswers;
+      STATE.route = restoredRoute;
+      STATE.bTypeFlagged = !!(savedP3?.bTypeFlagged || savedP2?.bTypeFlagged);
+      STATE.D20_reconsider_mode = !!savedP2?.D20_reconsider_mode;  // PR #10 C1
+      STATE.tournament = savedP1?.tournament || null;
+      STATE.axes = savedP1?.axes || null;
+      STATE.IB7_shown = !!savedP3?.IB7_shown;  // PR #9 C7
+      STATE.currentPhase = target.phase;
+
+      // 점프 보정 발생 시 사용자에게 알림
+      if (target.phase !== naivePhase) {
+        gaEvent('compass_resume_phase_correction', {
+          naive: naivePhase, target: target.phase, qid: target.qid || 'none'
+        });
+        setTimeout(showResumeNotice, 200);
+      }
+
+      if (target.phase === 1) {
+        return resumeFromAnswers();
+      } else if (target.phase === 2) {
+        return resumePhase2();
       } else {
-        STATE.answers = savedP1.answers;
-        STATE.tournament = savedP1.tournament || null;
-        resumeFromAnswers();
+        return resumePhase3();
       }
     });
     $('#restart-btn').addEventListener('click', () => {
@@ -6013,6 +6047,59 @@ function goNext(currentQ) {
       return showPhase3Placeholder();
     }
   }
+}
+
+// PR #10 C2 — 모든 Phase 통합 order에서 첫 미응답 문항 위치 (이어하기 점프 방지)
+function findFirstUnansweredAcrossPhases(answers, route) {
+  const p1Order = buildPhase1Order(answers || {});
+  for (const q of p1Order) {
+    if (!answers || !answers[q.id]) return { phase: 1, qid: q.id };
+  }
+  if (route) {
+    const p2Order = buildPhase2Order(answers || {}, route);
+    for (const q of p2Order) {
+      if (!answers || !answers[q.id]) return { phase: 2, qid: q.id };
+    }
+  } else {
+    // Phase 1 모두 응답이지만 route 미결정 → Phase 2 인트로 직전
+    return { phase: 2, qid: null, atIntro: true };
+  }
+  const p3Order = buildPhase3Order(answers || {});
+  for (const q of p3Order) {
+    if (!answers || !answers[q.id]) return { phase: 3, qid: q.id };
+  }
+  return { phase: 3, qid: null, allDone: true };
+}
+
+// PR #10 C2 — 현재 Part 완료 검증 (디버깅·진단용)
+function validatePartCompletion(answers, route) {
+  const part = STATE.currentPart;
+  if (!part) return { isComplete: true, missing: [] };
+  let order;
+  if (STATE.currentPhase === 1) order = buildPhase1Order(answers || {});
+  else if (STATE.currentPhase === 2) order = buildPhase2Order(answers || {}, route);
+  else order = buildPhase3Order(answers || {});
+  const partQs = order.filter(q => q.part === part);
+  const missing = partQs.filter(q => !(answers || {})[q.id]).map(q => q.id);
+  return { isComplete: missing.length === 0, missing };
+}
+
+// PR #10 C2 — qId의 통합 order 인덱스
+function findQuestionIndex(qId, route) {
+  const p1 = buildPhase1Order(STATE.answers || {}).map(q => ({ ...q, phase: 1 }));
+  const p2 = route ? buildPhase2Order(STATE.answers || {}, route).map(q => ({ ...q, phase: 2 })) : [];
+  const p3 = buildPhase3Order(STATE.answers || {}).map(q => ({ ...q, phase: 3 }));
+  const full = [...p1, ...p2, ...p3];
+  return full.findIndex(q => q.id === qId);
+}
+
+// PR #10 C2 — 이어하기 점프 보정 토스트
+function showResumeNotice() {
+  const toast = document.createElement('div');
+  toast.className = 'resume-notice-toast';
+  toast.textContent = '이전 진행 중이던 부분으로 돌아갑니다.';
+  document.body.appendChild(toast);
+  setTimeout(() => { try { toast.remove(); } catch(e) {} }, 4200);
 }
 
 // PR #10 C1 — D20 재제시 모드에서 D20 첫 문항인지 판정
