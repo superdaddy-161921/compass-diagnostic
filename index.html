@@ -145,8 +145,17 @@
     font-size: 15px; font-weight: 500; line-height: 1.45;
     color: var(--text-primary); cursor: pointer;
     font-family: inherit; transition: all .15s ease;
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
   }
-  .opt:hover { background: var(--teal-light); border-color: var(--teal); }
+  /* PR #10 C4 — hover는 마우스 디바이스에서만. 모바일 터치 후 sticky hover로
+     미선택 옵션이 미리 선택된 듯 보이는 현상 방지 (라운드 4 MH 보고) */
+  @media (hover: hover) {
+    .opt:hover { background: var(--teal-light); border-color: var(--teal); }
+  }
+  .opt:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+  }
   .opt.selected {
     background: var(--teal); border-color: var(--teal); color: var(--white);
   }
@@ -743,6 +752,151 @@
     line-height: 1.5;
   }
 
+  /* PR #10 C1 — IB#5 rebranch (재선택 진입 후 "이전"으로 복귀) */
+  .ib5-rebranch-notice {
+    margin: 16px 0 12px;
+    padding: 14px 16px;
+    background: #FFF7E6;
+    border-left: 4px solid var(--gold);
+    border-radius: 8px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--navy);
+  }
+  .ib5-rebranch-notice p {
+    margin: 0 0 6px;
+    font-weight: 600;
+  }
+  .ib5-rebranch-notice p:last-child { margin-bottom: 0; }
+  .ib5-rebranch-sub {
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    color: var(--text-secondary) !important;
+  }
+
+  /* PR #10 C2 — 이어하기 점프 보정 토스트 */
+  .resume-notice-toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 20px;
+    background: var(--navy);
+    color: #fff;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 9999;
+    opacity: 0;
+    animation: toastFadeIn 0.3s forwards, toastFadeOut 0.3s 3.7s forwards;
+  }
+  @keyframes toastFadeIn { to { opacity: 1; } }
+  @keyframes toastFadeOut { to { opacity: 0; } }
+
+  /* PR #10 C5 — Phase 3 framing 박스 + C형 목표 영역 배지 */
+  .phase3-framing {
+    display: flex;
+    gap: 14px;
+    margin: 16px 0 20px;
+    padding: 18px;
+    background: linear-gradient(135deg, var(--teal-light) 0%, #fff 100%);
+    border-left: 4px solid var(--teal);
+    border-radius: 12px;
+  }
+  .phase3-framing-icon { font-size: 28px; line-height: 1; flex-shrink: 0; }
+  .phase3-framing-text strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--teal);
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+  }
+  .phase3-framing-text p {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--navy);
+    line-height: 1.55;
+    margin: 0 0 6px;
+  }
+  .phase3-framing-text p:last-child { margin-bottom: 0; }
+  .phase3-framing-text em {
+    font-style: normal;
+    color: var(--teal);
+    font-weight: 700;
+  }
+  .c-goal-area-badge-wrap {
+    margin-bottom: 10px;
+  }
+  .c-goal-area-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    background: var(--teal);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+  }
+
+  /* PR #10 C3 — 같은 이름 입력 시 다이얼로그 */
+  .resume-dialog-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+  }
+  .resume-dialog {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px 22px;
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  }
+  .resume-dialog h2 {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--navy);
+    margin: 0 0 10px;
+    line-height: 1.45;
+  }
+  .resume-dialog p {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 0 0 18px;
+    line-height: 1.55;
+  }
+  .resume-dialog-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .dlg-btn {
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--navy);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .dlg-btn-resume { border-color: var(--teal); color: var(--teal); }
+  .dlg-btn-resume:hover { background: var(--teal-light); }
+  .dlg-btn-restart { border-color: var(--gold); color: #92400E; }
+  .dlg-btn-restart:hover { background: #FFF7E6; }
+  .dlg-btn-view { border-color: var(--teal); background: var(--teal); color: #fff; }
+  .dlg-btn-view:hover { background: #047857; border-color: #047857; }
+
   /* Phase 1 complete */
   .complete {
     text-align: center; padding: 48px 16px;
@@ -1258,8 +1412,8 @@ const QUESTIONS = {
           { label: "(C) 투자 공부, 재테크 관련 활동",         value: "C", tags: { axis8: "finance" } },
           { label: "(D) 가족이나 소중한 사람과 보내는 시간",   value: "D", tags: { axis8: "relationship" } },
           { label: "(E) 취미나 창작 활동",                    value: "E", tags: { axis8: "contribution" } },
-          { label: "(G) 직장/업무",                          value: "G", tags: { axis8: "growth" } },
-          { label: "(F) 딱히 없다",                          value: "F", tags: { axis8: "none" } }
+          { label: "(F) 직장/업무",                          value: "F", tags: { axis8: "growth" } },
+          { label: "(G) 딱히 없다",                          value: "G", tags: { axis8: "none" } }
         ]
       },
       { id: "QB1B", type: "slider", part: "B1",
@@ -1409,7 +1563,7 @@ const QUESTIONS = {
     partF: [
       // ====== 1겹: Phase 1 행동 데이터 교차 ======
       { id: "F1", type: "single", part: "F",
-        condition: { questionId: "QB1", valueNot: "F" },
+        condition: { questionId: "QB1", valueNot: "G" },
         text: "Phase 1에서 당신이 실제로 가장 많은 시간을 쓴 활동은 [QB1 결과]였습니다. 지금 세우려는 목표와 관련이 있나요?",
         options: [
           { label: "(A) 직접적으로 관련 있다 — 이미 행동으로 옮기고 있었다", value: "A", tags: { consistency: 1.0 } },
@@ -2315,7 +2469,7 @@ const ROUTE_QUESTIONS = {
             "value": "B"
           },
           {
-            "label": "(C) 사람들과의 관계의 깊이",
+            "label": "(C) 사람들과 맺는 관계의 깊이",
             "value": "C"
           },
           {
@@ -4358,9 +4512,9 @@ function calculateAreaCounts(answers, qIds) {
   qIds.forEach(id => {
     const ans = answers[id];
     if (!ans?.tags) return;
-    // QB1 직장/업무(G) 응답 + QB1B 자발성 ≤ 2 → axis8 카운트에서 제외
+    // QB1 직장/업무(F) 응답 + QB1B 자발성 ≤ 2 → axis8 카운트에서 제외
     // (강제로 하는 직장은 갈망 영역으로 간주하지 않음)
-    if (id === 'QB1' && ans.value === 'G') {
+    if (id === 'QB1' && ans.value === 'F') {
       const v = answers['QB1B']?.sliderValue;
       if (typeof v === 'number' && v <= 2) return;
     }
@@ -5001,6 +5155,30 @@ function extractFinalGoal(answers) {
   };
 }
 
+// PR #10 C5 — C형 목표 영역 추출 (Phase 3 framing·배지·차트 강조용)
+// 반환값: 'health' | 'finance' | 'growth' | 'relationship' | 'contribution' | null
+// 5영역 외 axis8 영역(lifestyle 등)은 null로 폴백 (Phase 3 슬라이더가 5영역 한정)
+function getCGoalArea(answers) {
+  const e14 = answers?.E14;
+  if (!e14?.tags) return null;
+  // D20 재선택 시에도 E14는 syncE14FromD20에서 갱신됨 → goal_id 기준
+  const goalId = e14.tags.goal_id;
+  if (!goalId) return null;
+  const goal = GOAL_POOL.goals.find(g => g.id === goalId);
+  if (!goal || !Array.isArray(goal.axis8_areas) || goal.axis8_areas.length === 0) return null;
+  const primary = goal.axis8_areas[0];
+  const FIVE_AREAS = ['health', 'finance', 'growth', 'relationship', 'contribution'];
+  return FIVE_AREAS.includes(primary) ? primary : null;
+}
+
+const AREA_LABEL_KOR = {
+  health: '건강·체력',
+  finance: '경제적 자유',
+  growth: '성장·학습',
+  relationship: '관계·가족',
+  contribution: '기여·영향력'
+};
+
 // stage1 1단계 분기 결과를 자연어로 (D6/D7/D8 답변 텍스트)
 function getStage1Summary(answers, route) {
   const items = [];
@@ -5098,26 +5276,50 @@ function renderIntro() {
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !btn.disabled) btn.click();
   });
+  // 저장된 진행 기록 로드 (start 버튼 핸들러 + resume 배너에서 공유)
+  const savedP1 = load('compass_phase1');
+  const savedP2 = load('compass_phase2');
+  const savedP3 = load('compass_phase3');
+  const savedMeta = load('compass_meta');
+  const hasP1 = savedP1?.answers && Object.keys(savedP1.answers).length > 0;
+  const hasP2 = savedP2?.answers && Object.keys(savedP2.answers).length > 0;
+  const hasP3 = savedP3?.answers && Object.keys(savedP3.answers).length > 0;
+  const hasAnyData = hasP1 || hasP2 || hasP3;
+  const isCompleted = !!savedP3?.completedAt;
+  const dialogCtx = { savedP1, savedP2, savedP3 };
+
   btn.addEventListener('click', () => {
-    STATE.participantName = input.value.trim();
+    const typedName = input.value.trim();
+    if (!typedName) return;
+    // PR #10 C3 — 같은 이름 + 기존 기록이면 다이얼로그 표시
+    const savedNameTrim = (savedMeta?.name || '').trim();
+    const sameName = hasAnyData && savedNameTrim && savedNameTrim === typedName;
+    if (sameName && isCompleted) {
+      return showResultOrRestartDialog(typedName, dialogCtx);
+    }
+    if (sameName) {
+      return showResumeOrRestartDialog(typedName, dialogCtx);
+    }
+    // 다른 이름인데 기존 기록이 남아있으면 stale 데이터 제거 후 시작
+    if (hasAnyData) {
+      localStorage.removeItem('compass_phase1');
+      localStorage.removeItem('compass_phase2');
+      localStorage.removeItem('compass_phase3');
+      gaEvent('compass_start_different_name');
+    }
+    resetSTATE();
+    STATE.participantName = typedName;
     STATE.startedAt = Date.now();
     save('compass_meta', {
       name: STATE.participantName,
       startedAt: STATE.startedAt
     });
     gaEvent('compass_start', { phase: 1 });
+    STATE.currentPhase = 1;
     STATE.currentPart = 'A';
     STATE.currentIndex = 0;
     renderCurrentQuestion();
   });
-
-  // 재시작 옵션 — Phase 1·2·3 저장 데이터 있으면 안내
-  const savedP1 = load('compass_phase1');
-  const savedP2 = load('compass_phase2');
-  const savedP3 = load('compass_phase3');
-  const hasP1 = savedP1?.answers && Object.keys(savedP1.answers).length > 0;
-  const hasP2 = savedP2?.answers && Object.keys(savedP2.answers).length > 0;
-  const hasP3 = savedP3?.answers && Object.keys(savedP3.answers).length > 0;
 
   if (hasP1 || hasP2 || hasP3) {
     const meta = load('compass_meta');
@@ -5145,28 +5347,43 @@ function renderIntro() {
       STATE.participantName = name;
       // 이어하기 배너 표시 플래그 (renderQuestion 첫 호출 시 1회 표시)
       try { sessionStorage.setItem('compass_resume_pending', '1'); } catch(e) {}
-      // Phase 3 우선, 없으면 2, 없으면 1
-      if (hasP3) {
-        STATE.answers = savedP3.answers;
-        STATE.route = savedP3.route || savedP2?.route || null;
-        STATE.bTypeFlagged = !!(savedP3.bTypeFlagged || savedP2?.bTypeFlagged);
-        STATE.tournament = savedP1?.tournament || null;
-        STATE.axes = savedP1?.axes || null;
-        STATE.currentPhase = 3;
-        STATE.IB7_shown = !!savedP3.IB7_shown;  // PR #9 C7
-        resumePhase3();
-      } else if (hasP2) {
-        STATE.answers = savedP2.answers;
-        STATE.route = savedP2.route;
-        STATE.bTypeFlagged = !!savedP2.bTypeFlagged;
-        STATE.tournament = savedP1?.tournament || null;
-        STATE.axes = savedP1?.axes || null;
-        STATE.currentPhase = 2;
-        resumePhase2();
+
+      // PR #10 C2 — 통합 answers로부터 cross-phase 검증해 미완료 Part 점프 방지
+      // 단순히 "가장 높은 Phase 저장" 기준으로 분기하면, stale compass_phase3가 남아있을 때
+      // 미완료 Part F에서 Part G로 점프하는 버그 발생 (라운드 4 명진 보고).
+      const combinedAnswers = Object.assign(
+        {},
+        savedP1?.answers || {},
+        savedP2?.answers || {},
+        savedP3?.answers || {}
+      );
+      const restoredRoute = savedP3?.route || savedP2?.route || null;
+      const target = findFirstUnansweredAcrossPhases(combinedAnswers, restoredRoute);
+      const naivePhase = hasP3 ? 3 : (hasP2 ? 2 : 1);
+
+      STATE.answers = combinedAnswers;
+      STATE.route = restoredRoute;
+      STATE.bTypeFlagged = !!(savedP3?.bTypeFlagged || savedP2?.bTypeFlagged);
+      STATE.D20_reconsider_mode = !!savedP2?.D20_reconsider_mode;  // PR #10 C1
+      STATE.tournament = savedP1?.tournament || null;
+      STATE.axes = savedP1?.axes || null;
+      STATE.IB7_shown = !!savedP3?.IB7_shown;  // PR #9 C7
+      STATE.currentPhase = target.phase;
+
+      // 점프 보정 발생 시 사용자에게 알림
+      if (target.phase !== naivePhase) {
+        gaEvent('compass_resume_phase_correction', {
+          naive: naivePhase, target: target.phase, qid: target.qid || 'none'
+        });
+        setTimeout(showResumeNotice, 200);
+      }
+
+      if (target.phase === 1) {
+        return resumeFromAnswers();
+      } else if (target.phase === 2) {
+        return resumePhase2();
       } else {
-        STATE.answers = savedP1.answers;
-        STATE.tournament = savedP1.tournament || null;
-        resumeFromAnswers();
+        return resumePhase3();
       }
     });
     $('#restart-btn').addEventListener('click', () => {
@@ -5200,6 +5417,14 @@ function resumePhase2() {
   // Phase 2 가장 마지막 답변된 문항 다음으로 이동
   if (!STATE.axes && STATE.answers) STATE.axes = calculateAxisScores(STATE.answers);
   if (!STATE.route && STATE.axes) STATE.route = determineRoute(STATE.axes);
+
+  // PR #10 C1: D20 재제시 모드 복원 — IB5_branch === 'reconsider'이면 D20 픽커, 아니면 IB#5 (rebranch state)
+  if (STATE.D20_reconsider_mode) {
+    if (STATE.answers?.IB5_branch?.value === 'reconsider') {
+      return rerenderD20Selection();
+    }
+    return renderIBPostPartE();
+  }
 
   const order = buildPhase2Order(STATE.answers, STATE.route);
   let resumeIdx = order.length;
@@ -5382,10 +5607,20 @@ function renderQuestion(q, questionNum, totalNum) {
     </div>
   ` : '';
 
+  // PR #10 C5: C형 목표 영역 슬라이더에 배지 ("⭐ C형 목표 영역")
+  let cGoalBadgeHtml = '';
+  if (STATE.currentPhase === 3 && q.part === 'G' && q.type === 'slider10' && q.area) {
+    const cGoalAreaForBadge = getCGoalArea(STATE.answers);
+    if (cGoalAreaForBadge && q.area === cGoalAreaForBadge) {
+      cGoalBadgeHtml = `<div class="c-goal-area-badge-wrap"><span class="c-goal-area-badge">⭐ C형 목표 영역</span></div>`;
+    }
+  }
+
   body += `
     <div class="qcard" data-qid="${q.id}">
       <div class="qmeta">${partMeta} · <span class="qnumber">${questionNum}/${totalNum}</span></div>
       ${d20PivotHtml}
+      ${cGoalBadgeHtml}
       <div class="qtext ${(q.type === 'slider' || q.type === 'slider10') ? 'small' : ''}">${escapeHtml(qtext)}</div>
   `;
 
@@ -5480,7 +5715,7 @@ function renderQuestion(q, questionNum, totalNum) {
   }
 
   if (canGoBack) {
-    $('#prev-btn').addEventListener('click', goPrev);
+    $('#prev-btn').addEventListener('click', handlePreviousButton);
   }
   $('#next-btn').addEventListener('click', () => saveAndAdvance(q));
 
@@ -5819,6 +6054,11 @@ function saveAndAdvance(q) {
       axisScore: opt.axisScore || null
     };
   }
+  // PR #10 C1 — D20 재제시 모드 답변에 from_reconsider 플래그
+  if (STATE.D20_reconsider_mode && q.id && q.id.startsWith('D20-') && ans) {
+    ans.from_reconsider = true;
+    ans.reconsider_ts = Date.now();
+  }
   STATE.answers[q.id] = ans;
 
   // 토너먼트 승자 기록
@@ -5841,6 +6081,7 @@ function saveAndAdvance(q) {
       answers: STATE.answers,
       route: STATE.route,
       bTypeFlagged: STATE.bTypeFlagged,
+      D20_reconsider_mode: !!STATE.D20_reconsider_mode,
       updatedAt: Date.now()
     });
     // PR #9 C1: D20 재제시 모드에서 D20 답변 후 → IB#5 3/3 복귀
@@ -5976,6 +6217,229 @@ function goNext(currentQ) {
       return showPhase3Placeholder();
     }
   }
+}
+
+// PR #10 C3 — STATE 초기화 (createInitialState 동등)
+function resetSTATE() {
+  STATE.participantName = "";
+  STATE.answers = {};
+  STATE.currentScreen = "intro";
+  STATE.currentPhase = 1;
+  STATE.currentPart = null;
+  STATE.currentIndex = 0;
+  STATE.tournament = null;
+  STATE.axes = null;
+  STATE.route = null;
+  STATE.bTypeFlagged = false;
+  STATE.startedAt = null;
+  STATE.D20_reconsider_mode = false;
+  STATE.IB7_shown = false;
+}
+
+// PR #10 C3 — 같은 이름 입력 시 다이얼로그 (미완료 진행 기록)
+function showResumeOrRestartDialog(name, ctx) {
+  const overlay = document.createElement('div');
+  overlay.className = 'resume-dialog-overlay';
+  overlay.innerHTML = `
+    <div class="resume-dialog">
+      <h2>${escapeHtml(name)}님, 이전 진행 기록이 있습니다</h2>
+      <p>이어서 진행하시겠어요? 새로 시작하시겠어요?</p>
+      <div class="resume-dialog-buttons">
+        <button class="dlg-btn dlg-btn-resume" type="button" data-action="resume">↻ 이어서 진행</button>
+        <button class="dlg-btn dlg-btn-restart" type="button" data-action="restart">↺ 새로 시작</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  gaEvent('compass_name_reuse_dialog', { kind: 'incomplete' });
+  overlay.querySelector('[data-action="resume"]').addEventListener('click', () => {
+    gaEvent('compass_name_reuse_choice', { kind: 'incomplete', choice: 'resume' });
+    overlay.remove();
+    resumeFromIntroContext(name, ctx);
+  });
+  overlay.querySelector('[data-action="restart"]').addEventListener('click', () => {
+    gaEvent('compass_name_reuse_choice', { kind: 'incomplete', choice: 'restart' });
+    overlay.remove();
+    restartDiagnosis(name);
+  });
+}
+
+// PR #10 C3 — 같은 이름 입력 시 다이얼로그 (완료 기록)
+function showResultOrRestartDialog(name, ctx) {
+  const overlay = document.createElement('div');
+  overlay.className = 'resume-dialog-overlay';
+  overlay.innerHTML = `
+    <div class="resume-dialog">
+      <h2>${escapeHtml(name)}님, 이전 완료 기록이 있습니다</h2>
+      <p>이전 결과를 다시 보시거나, 새로 진단을 시작하실 수 있습니다.</p>
+      <div class="resume-dialog-buttons">
+        <button class="dlg-btn dlg-btn-view" type="button" data-action="view">🎯 이전 결과 보기</button>
+        <button class="dlg-btn dlg-btn-restart" type="button" data-action="restart">↺ 새로 시작</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  gaEvent('compass_name_reuse_dialog', { kind: 'completed' });
+  overlay.querySelector('[data-action="view"]').addEventListener('click', () => {
+    gaEvent('compass_name_reuse_choice', { kind: 'completed', choice: 'view' });
+    overlay.remove();
+    viewPreviousResult(name, ctx);
+  });
+  overlay.querySelector('[data-action="restart"]').addEventListener('click', () => {
+    gaEvent('compass_name_reuse_choice', { kind: 'completed', choice: 'restart' });
+    overlay.remove();
+    restartDiagnosis(name);
+  });
+}
+
+// PR #10 C3 — "이어서 진행" 선택: cross-phase 검증 후 적절한 위치로 복귀
+function resumeFromIntroContext(name, ctx) {
+  STATE.participantName = name;
+  try { sessionStorage.setItem('compass_resume_pending', '1'); } catch(e) {}
+  const combined = Object.assign(
+    {},
+    ctx.savedP1?.answers || {},
+    ctx.savedP2?.answers || {},
+    ctx.savedP3?.answers || {}
+  );
+  const route = ctx.savedP3?.route || ctx.savedP2?.route || null;
+  const target = findFirstUnansweredAcrossPhases(combined, route);
+  STATE.answers = combined;
+  STATE.route = route;
+  STATE.bTypeFlagged = !!(ctx.savedP3?.bTypeFlagged || ctx.savedP2?.bTypeFlagged);
+  STATE.D20_reconsider_mode = !!ctx.savedP2?.D20_reconsider_mode;
+  STATE.tournament = ctx.savedP1?.tournament || null;
+  STATE.axes = ctx.savedP1?.axes || null;
+  STATE.IB7_shown = !!ctx.savedP3?.IB7_shown;
+  STATE.currentPhase = target.phase;
+  if (target.phase === 1) return resumeFromAnswers();
+  if (target.phase === 2) return resumePhase2();
+  return resumePhase3();
+}
+
+// PR #10 C3 — "새로 시작" 선택: localStorage 비우고 깨끗한 진단 시작
+function restartDiagnosis(name) {
+  localStorage.removeItem('compass_phase1');
+  localStorage.removeItem('compass_phase2');
+  localStorage.removeItem('compass_phase3');
+  resetSTATE();
+  STATE.participantName = name;
+  STATE.startedAt = Date.now();
+  save('compass_meta', { name: name, startedAt: STATE.startedAt });
+  gaEvent('compass_start', { phase: 1, fresh: 1 });
+  STATE.currentPhase = 1;
+  STATE.currentPart = 'A';
+  STATE.currentIndex = 0;
+  renderCurrentQuestion();
+}
+
+// PR #10 C3 — "이전 결과 보기" 선택: 완료된 진단 상태 복원 후 IB8 결과 화면
+function viewPreviousResult(name, ctx) {
+  STATE.participantName = name;
+  const combined = Object.assign(
+    {},
+    ctx.savedP1?.answers || {},
+    ctx.savedP2?.answers || {},
+    ctx.savedP3?.answers || {}
+  );
+  STATE.answers = combined;
+  STATE.route = ctx.savedP3?.route || ctx.savedP2?.route || null;
+  STATE.bTypeFlagged = !!(ctx.savedP3?.bTypeFlagged || ctx.savedP2?.bTypeFlagged);
+  STATE.tournament = ctx.savedP1?.tournament || null;
+  STATE.axes = ctx.savedP1?.axes || null;
+  STATE.IB7_shown = true;
+  STATE.currentPhase = 3;
+  if (typeof renderIB8 === 'function') return renderIB8();
+  // 폴백 — IB8 미정의면 그냥 resumePhase3
+  return resumePhase3();
+}
+
+// PR #10 C2 — 모든 Phase 통합 order에서 첫 미응답 문항 위치 (이어하기 점프 방지)
+function findFirstUnansweredAcrossPhases(answers, route) {
+  const p1Order = buildPhase1Order(answers || {});
+  for (const q of p1Order) {
+    if (!answers || !answers[q.id]) return { phase: 1, qid: q.id };
+  }
+  if (route) {
+    const p2Order = buildPhase2Order(answers || {}, route);
+    for (const q of p2Order) {
+      if (!answers || !answers[q.id]) return { phase: 2, qid: q.id };
+    }
+  } else {
+    // Phase 1 모두 응답이지만 route 미결정 → Phase 2 인트로 직전
+    return { phase: 2, qid: null, atIntro: true };
+  }
+  const p3Order = buildPhase3Order(answers || {});
+  for (const q of p3Order) {
+    if (!answers || !answers[q.id]) return { phase: 3, qid: q.id };
+  }
+  return { phase: 3, qid: null, allDone: true };
+}
+
+// PR #10 C2 — 현재 Part 완료 검증 (디버깅·진단용)
+function validatePartCompletion(answers, route) {
+  const part = STATE.currentPart;
+  if (!part) return { isComplete: true, missing: [] };
+  let order;
+  if (STATE.currentPhase === 1) order = buildPhase1Order(answers || {});
+  else if (STATE.currentPhase === 2) order = buildPhase2Order(answers || {}, route);
+  else order = buildPhase3Order(answers || {});
+  const partQs = order.filter(q => q.part === part);
+  const missing = partQs.filter(q => !(answers || {})[q.id]).map(q => q.id);
+  return { isComplete: missing.length === 0, missing };
+}
+
+// PR #10 C2 — qId의 통합 order 인덱스
+function findQuestionIndex(qId, route) {
+  const p1 = buildPhase1Order(STATE.answers || {}).map(q => ({ ...q, phase: 1 }));
+  const p2 = route ? buildPhase2Order(STATE.answers || {}, route).map(q => ({ ...q, phase: 2 })) : [];
+  const p3 = buildPhase3Order(STATE.answers || {}).map(q => ({ ...q, phase: 3 }));
+  const full = [...p1, ...p2, ...p3];
+  return full.findIndex(q => q.id === qId);
+}
+
+// PR #10 C2 — 이어하기 점프 보정 토스트
+function showResumeNotice() {
+  const toast = document.createElement('div');
+  toast.className = 'resume-notice-toast';
+  toast.textContent = '이전 진행 중이던 부분으로 돌아갑니다.';
+  document.body.appendChild(toast);
+  setTimeout(() => { try { toast.remove(); } catch(e) {} }, 4200);
+}
+
+// PR #10 C1 — D20 재제시 모드에서 D20 첫 문항인지 판정
+function isD20FirstQuestion() {
+  if (!STATE.D20_reconsider_mode) return false;
+  if (STATE.currentPart !== 'D_stage3') return false;
+  const partQs = buildPhase2Order(STATE.answers, STATE.route).filter(q => q.part === 'D_stage3');
+  const q = partQs[STATE.currentIndex];
+  return !!(q && q.id && q.id.startsWith('D20-'));
+}
+
+// PR #10 C1 — "이전" 클릭 핸들러: D20 재제시 첫 문항이면 IB#5 3/3로 복귀, 아니면 일반 goPrev
+function handlePreviousButton() {
+  if (isD20FirstQuestion()) {
+    const route = STATE.route;
+    const d20Key = `D20-${route}`;
+    // 첫 D20 선택 복원 (재선택 답변 아직 안 했으면 D20_first 백업으로 복귀)
+    if (STATE.answers.D20_first
+        && (!STATE.answers[d20Key] || STATE.answers[d20Key].from_reconsider !== true)) {
+      STATE.answers[d20Key] = { ...STATE.answers.D20_first };
+    }
+    // 분기 박스 다시 표시되도록 IB5_branch 초기화 (D20_reconsider_mode는 유지 — rebranch-notice용)
+    delete STATE.answers.IB5_branch;
+    // compass_phase2 즉시 동기화
+    save('compass_phase2', {
+      answers: STATE.answers,
+      route: STATE.route,
+      bTypeFlagged: STATE.bTypeFlagged,
+      D20_reconsider_mode: !!STATE.D20_reconsider_mode,
+      updatedAt: Date.now()
+    });
+    gaEvent('compass_d20_reconsider_back');
+    return renderIBPostPartE();
+  }
+  return goPrev();
 }
 
 function goPrev() {
@@ -6500,10 +6964,52 @@ function renderPhase3Intro() {
   STATE.currentScreen = 'phase3Intro';
   const app = $('#app');
   const total = getPhase3TotalCount();
+
+  // PR #10 C5 — Phase 3 framing: C형 목표가 5영역 중 어디에 속하는지 명시
+  const finalGoal = extractFinalGoal(STATE.answers);
+  const cGoalArea = getCGoalArea(STATE.answers);
+  const cGoalAreaLabel = cGoalArea ? AREA_LABEL_KOR[cGoalArea] : null;
+  const isDeferred = !!(STATE.answers?.IB5_branch?.defer_to_ot) || finalGoal.confidence === 'unsure';
+  const cGoalStatement = finalGoal.statement || 'OT에서 함께 정할 목표';
+  const framingHtml = isDeferred
+    ? `
+      <div class="phase3-framing">
+        <div class="phase3-framing-icon">🎯</div>
+        <div class="phase3-framing-text">
+          <strong>왜 5영역을 다 점검하나요?</strong>
+          <p>C형 목표는 <em>OT에서 함께 확정</em>합니다. 그 전에 5영역 균형을 점검해 두면 OT에서 어느 영역에 집중할지 더 명료하게 정할 수 있습니다.</p>
+          <p>100일 동안의 방향이 5영역 어디에 어떻게 영향을 주는지 확인합니다.</p>
+        </div>
+      </div>
+    `
+    : cGoalAreaLabel
+      ? `
+        <div class="phase3-framing">
+          <div class="phase3-framing-icon">🎯</div>
+          <div class="phase3-framing-text">
+            <strong>왜 5영역을 다 점검하나요?</strong>
+            <p>당신의 C형 목표 <em>"${escapeHtml(cGoalStatement)}"</em>는 <em>${escapeHtml(cGoalAreaLabel)}</em> 영역에 집중합니다. 하지만 100일은 인생 전체에서 진행됩니다.</p>
+            <p>잠시 5영역 균형을 점검하고, C형 목표 영역에 어떻게 시너지가 날지 확인합니다.</p>
+          </div>
+        </div>
+      `
+      : `
+        <div class="phase3-framing">
+          <div class="phase3-framing-icon">🎯</div>
+          <div class="phase3-framing-text">
+            <strong>왜 5영역을 다 점검하나요?</strong>
+            <p>C형 목표는 <em>"${escapeHtml(cGoalStatement)}"</em>입니다. 100일은 인생 전체에서 진행되므로, 5영역 균형을 함께 점검합니다.</p>
+            <p>가장 큰 갭이 C형 목표와 어떻게 연결되는지 확인합니다.</p>
+          </div>
+        </div>
+      `;
+
   app.innerHTML = `
     <div class="intro">
       <h1>Phase 3 시작</h1>
       <p class="subtitle">5영역 현재 vs 100일 후 + 100일 방향 착지</p>
+
+      ${framingHtml}
 
       <div class="card">
         <h3>이 단계에서 하는 것</h3>
@@ -6675,6 +7181,7 @@ function renderIBPostPartD() {
         answers: STATE.answers,
         route: STATE.route,
         bTypeFlagged: STATE.bTypeFlagged,
+        D20_reconsider_mode: !!STATE.D20_reconsider_mode,
         partDCompletedAt: Date.now()
       });
       // Part F 진입
@@ -6746,6 +7253,7 @@ function renderIBPostPartF() {
         bTypeFlagged: STATE.bTypeFlagged,
         consistency: cons,
         extraExplore: extra,
+        D20_reconsider_mode: !!STATE.D20_reconsider_mode,
         partFCompletedAt: Date.now()
       });
       // Part E 직접 진입
@@ -6839,8 +7347,16 @@ function renderIBPostPartE() {
        </div>`
     : '';
 
-  // PR #9 C1: 분기 박스 (최초 진입 시에만 표시 — 이미 IB5_branch 결정되면 숨김)
-  const showBranchBox = !STATE.answers.IB5_branch;
+  // PR #9 C1 + PR #10 C1: 분기 박스 (최초 진입 또는 재제시 중 "이전"으로 복귀했을 때 표시)
+  const showBranchBox = !STATE.answers.IB5_branch || STATE.D20_reconsider_mode === true;
+  // PR #10 C1: 재제시 진입 후 "이전"으로 복귀한 경우 안내
+  const showRebranchNotice = STATE.D20_reconsider_mode === true && STATE.answers.D20_first;
+  const rebranchNoticeHtml = showRebranchNotice ? `
+    <div class="ib5-rebranch-notice">
+      <p>방금 다른 후보를 살펴보셨습니다. 원래 방향으로 돌아왔습니다.</p>
+      <p class="ib5-rebranch-sub">처음 선택을 유지하시려면 "네, 이 방향이 맞아요"를, 다시 살펴보시려면 "다른 방향도 살펴보고 싶어요"를 선택하세요.</p>
+    </div>
+  ` : '';
   const branchBoxHtml = showBranchBox ? `
     <div class="ib5-branch-box">
       <div class="ib5-branch-q">이 방향이 정말 당신의 진짜 갈망 같나요?</div>
@@ -6887,6 +7403,7 @@ function renderIBPostPartE() {
     ${extraMsgHtml}
     ${verifyHtml}
     ${branchStatusHtml}
+    ${rebranchNoticeHtml}
     ${branchBoxHtml}
     <p class="ib-body" style="margin-top:18px;">
       <strong>Phase 2가 마무리되었습니다.</strong> 다음은 <em>Phase 3</em> — 100일 동안의 실행 계획을 그려갑니다.
@@ -6894,6 +7411,8 @@ function renderIBPostPartE() {
   `;
 
   const proceedToPhase3 = () => {
+    // PR #10 C1: IB#5 단계 통과 시 재제시 모드 종료 (방어적)
+    STATE.D20_reconsider_mode = false;
     const fg = extractFinalGoal(STATE.answers);
     const ps = calculatePassionScore(STATE.answers);
     gaEvent('compass_phase_complete', {
@@ -6918,6 +7437,7 @@ function renderIBPostPartE() {
       identityFocus: STATE.answers.E11?.tags?.identity_focus || null,
       ib5_branch: STATE.answers.IB5_branch?.value || 'confirm',
       defer_to_ot: !!STATE.answers.IB5_branch?.defer_to_ot,
+      D20_reconsider_mode: false,
       completedAt: Date.now()
     });
     enterPhase3();
@@ -7071,8 +7591,15 @@ function renderIB7() {
     }
   });
 
+  // PR #10 C5: C형 목표 영역 라벨에 ⭐ 표시
+  const cGoalAreaForChart = getCGoalArea(STATE.answers);
+  const chartLabels = areas.map(area => {
+    const base = labelMap[area];
+    return (cGoalAreaForChart && area === cGoalAreaForChart) ? `⭐ ${base}` : base;
+  });
+
   // 레이더 차트 그리기 (overlay가 DOM에 추가된 후)
-  requestAnimationFrame(() => drawGapRadar('ib7-radar', cur, tgt, areas.map(a => labelMap[a])));
+  requestAnimationFrame(() => drawGapRadar('ib7-radar', cur, tgt, chartLabels));
 }
 
 // 5영역 갭 레이더 차트 — 현재(틸) + 원하는(네이비) 2 데이터셋
