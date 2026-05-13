@@ -794,6 +794,52 @@
   @keyframes toastFadeIn { to { opacity: 1; } }
   @keyframes toastFadeOut { to { opacity: 0; } }
 
+  /* PR #10 C5 — Phase 3 framing 박스 + C형 목표 영역 배지 */
+  .phase3-framing {
+    display: flex;
+    gap: 14px;
+    margin: 16px 0 20px;
+    padding: 18px;
+    background: linear-gradient(135deg, var(--teal-light) 0%, #fff 100%);
+    border-left: 4px solid var(--teal);
+    border-radius: 12px;
+  }
+  .phase3-framing-icon { font-size: 28px; line-height: 1; flex-shrink: 0; }
+  .phase3-framing-text strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--teal);
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+  }
+  .phase3-framing-text p {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--navy);
+    line-height: 1.55;
+    margin: 0 0 6px;
+  }
+  .phase3-framing-text p:last-child { margin-bottom: 0; }
+  .phase3-framing-text em {
+    font-style: normal;
+    color: var(--teal);
+    font-weight: 700;
+  }
+  .c-goal-area-badge-wrap {
+    margin-bottom: 10px;
+  }
+  .c-goal-area-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    background: var(--teal);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+  }
+
   /* PR #10 C3 — 같은 이름 입력 시 다이얼로그 */
   .resume-dialog-overlay {
     position: fixed;
@@ -5109,6 +5155,30 @@ function extractFinalGoal(answers) {
   };
 }
 
+// PR #10 C5 — C형 목표 영역 추출 (Phase 3 framing·배지·차트 강조용)
+// 반환값: 'health' | 'finance' | 'growth' | 'relationship' | 'contribution' | null
+// 5영역 외 axis8 영역(lifestyle 등)은 null로 폴백 (Phase 3 슬라이더가 5영역 한정)
+function getCGoalArea(answers) {
+  const e14 = answers?.E14;
+  if (!e14?.tags) return null;
+  // D20 재선택 시에도 E14는 syncE14FromD20에서 갱신됨 → goal_id 기준
+  const goalId = e14.tags.goal_id;
+  if (!goalId) return null;
+  const goal = GOAL_POOL.goals.find(g => g.id === goalId);
+  if (!goal || !Array.isArray(goal.axis8_areas) || goal.axis8_areas.length === 0) return null;
+  const primary = goal.axis8_areas[0];
+  const FIVE_AREAS = ['health', 'finance', 'growth', 'relationship', 'contribution'];
+  return FIVE_AREAS.includes(primary) ? primary : null;
+}
+
+const AREA_LABEL_KOR = {
+  health: '건강·체력',
+  finance: '경제적 자유',
+  growth: '성장·학습',
+  relationship: '관계·가족',
+  contribution: '기여·영향력'
+};
+
 // stage1 1단계 분기 결과를 자연어로 (D6/D7/D8 답변 텍스트)
 function getStage1Summary(answers, route) {
   const items = [];
@@ -5537,10 +5607,20 @@ function renderQuestion(q, questionNum, totalNum) {
     </div>
   ` : '';
 
+  // PR #10 C5: C형 목표 영역 슬라이더에 배지 ("⭐ C형 목표 영역")
+  let cGoalBadgeHtml = '';
+  if (STATE.currentPhase === 3 && q.part === 'G' && q.type === 'slider10' && q.area) {
+    const cGoalAreaForBadge = getCGoalArea(STATE.answers);
+    if (cGoalAreaForBadge && q.area === cGoalAreaForBadge) {
+      cGoalBadgeHtml = `<div class="c-goal-area-badge-wrap"><span class="c-goal-area-badge">⭐ C형 목표 영역</span></div>`;
+    }
+  }
+
   body += `
     <div class="qcard" data-qid="${q.id}">
       <div class="qmeta">${partMeta} · <span class="qnumber">${questionNum}/${totalNum}</span></div>
       ${d20PivotHtml}
+      ${cGoalBadgeHtml}
       <div class="qtext ${(q.type === 'slider' || q.type === 'slider10') ? 'small' : ''}">${escapeHtml(qtext)}</div>
   `;
 
@@ -6884,10 +6964,52 @@ function renderPhase3Intro() {
   STATE.currentScreen = 'phase3Intro';
   const app = $('#app');
   const total = getPhase3TotalCount();
+
+  // PR #10 C5 — Phase 3 framing: C형 목표가 5영역 중 어디에 속하는지 명시
+  const finalGoal = extractFinalGoal(STATE.answers);
+  const cGoalArea = getCGoalArea(STATE.answers);
+  const cGoalAreaLabel = cGoalArea ? AREA_LABEL_KOR[cGoalArea] : null;
+  const isDeferred = !!(STATE.answers?.IB5_branch?.defer_to_ot) || finalGoal.confidence === 'unsure';
+  const cGoalStatement = finalGoal.statement || 'OT에서 함께 정할 목표';
+  const framingHtml = isDeferred
+    ? `
+      <div class="phase3-framing">
+        <div class="phase3-framing-icon">🎯</div>
+        <div class="phase3-framing-text">
+          <strong>왜 5영역을 다 점검하나요?</strong>
+          <p>C형 목표는 <em>OT에서 함께 확정</em>합니다. 그 전에 5영역 균형을 점검해 두면 OT에서 어느 영역에 집중할지 더 명료하게 정할 수 있습니다.</p>
+          <p>100일 동안의 방향이 5영역 어디에 어떻게 영향을 주는지 확인합니다.</p>
+        </div>
+      </div>
+    `
+    : cGoalAreaLabel
+      ? `
+        <div class="phase3-framing">
+          <div class="phase3-framing-icon">🎯</div>
+          <div class="phase3-framing-text">
+            <strong>왜 5영역을 다 점검하나요?</strong>
+            <p>당신의 C형 목표 <em>"${escapeHtml(cGoalStatement)}"</em>는 <em>${escapeHtml(cGoalAreaLabel)}</em> 영역에 집중합니다. 하지만 100일은 인생 전체에서 진행됩니다.</p>
+            <p>잠시 5영역 균형을 점검하고, C형 목표 영역에 어떻게 시너지가 날지 확인합니다.</p>
+          </div>
+        </div>
+      `
+      : `
+        <div class="phase3-framing">
+          <div class="phase3-framing-icon">🎯</div>
+          <div class="phase3-framing-text">
+            <strong>왜 5영역을 다 점검하나요?</strong>
+            <p>C형 목표는 <em>"${escapeHtml(cGoalStatement)}"</em>입니다. 100일은 인생 전체에서 진행되므로, 5영역 균형을 함께 점검합니다.</p>
+            <p>가장 큰 갭이 C형 목표와 어떻게 연결되는지 확인합니다.</p>
+          </div>
+        </div>
+      `;
+
   app.innerHTML = `
     <div class="intro">
       <h1>Phase 3 시작</h1>
       <p class="subtitle">5영역 현재 vs 100일 후 + 100일 방향 착지</p>
+
+      ${framingHtml}
 
       <div class="card">
         <h3>이 단계에서 하는 것</h3>
@@ -7469,8 +7591,15 @@ function renderIB7() {
     }
   });
 
+  // PR #10 C5: C형 목표 영역 라벨에 ⭐ 표시
+  const cGoalAreaForChart = getCGoalArea(STATE.answers);
+  const chartLabels = areas.map(area => {
+    const base = labelMap[area];
+    return (cGoalAreaForChart && area === cGoalAreaForChart) ? `⭐ ${base}` : base;
+  });
+
   // 레이더 차트 그리기 (overlay가 DOM에 추가된 후)
-  requestAnimationFrame(() => drawGapRadar('ib7-radar', cur, tgt, areas.map(a => labelMap[a])));
+  requestAnimationFrame(() => drawGapRadar('ib7-radar', cur, tgt, chartLabels));
 }
 
 // 5영역 갭 레이더 차트 — 현재(틸) + 원하는(네이비) 2 데이터셋
