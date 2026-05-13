@@ -145,8 +145,17 @@
     font-size: 15px; font-weight: 500; line-height: 1.45;
     color: var(--text-primary); cursor: pointer;
     font-family: inherit; transition: all .15s ease;
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
   }
-  .opt:hover { background: var(--teal-light); border-color: var(--teal); }
+  /* PR #10 C4 — hover는 마우스 디바이스에서만. 모바일 터치 후 sticky hover로
+     미선택 옵션이 미리 선택된 듯 보이는 현상 방지 (라운드 4 MH 보고) */
+  @media (hover: hover) {
+    .opt:hover { background: var(--teal-light); border-color: var(--teal); }
+  }
+  .opt:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+  }
   .opt.selected {
     background: var(--teal); border-color: var(--teal); color: var(--white);
   }
