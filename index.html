@@ -798,7 +798,7 @@
     font-size: 13px !important;
   }
 
-  /* PR #9 C1 — D20 재제시 안내 */
+  /* PR #9 C1 — D20 재제시 안내 (PR #11 C3에서 framing으로 강화) */
   .d20-reconsider-notice {
     background: var(--teal-light);
     color: var(--navy);
@@ -808,6 +808,50 @@
     margin-bottom: 14px;
     font-size: 14px; font-weight: 600;
     line-height: 1.5;
+  }
+
+  /* PR #11 C3 — D20 재제시 모드 framing (재탐색 모드 명시) */
+  .d20-reconsider-framing {
+    display: flex; gap: 12px;
+    margin: 0 0 18px;
+    padding: 18px;
+    background: linear-gradient(135deg, #F0FDF4 0%, var(--teal-light) 100%);
+    border-left: 4px solid var(--teal);
+    border-radius: 12px;
+  }
+  .reconsider-icon {
+    font-size: 28px; line-height: 1; flex-shrink: 0;
+  }
+  .reconsider-text { flex: 1; min-width: 0; }
+  .reconsider-text strong {
+    display: block;
+    font-size: 12px; font-weight: 700;
+    color: var(--teal-dark); letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .reconsider-text p {
+    font-size: 14px; font-weight: 600;
+    color: var(--navy); line-height: 1.5;
+    margin: 0 0 8px;
+  }
+  .reconsider-text em {
+    font-style: normal;
+    color: var(--teal-dark); font-weight: 700;
+  }
+  .reconsider-list {
+    margin: 6px 0 4px 18px; padding: 0;
+    font-size: 13.5px; font-weight: 500;
+    color: var(--navy); line-height: 1.7;
+  }
+  .reconsider-list li { margin-bottom: 2px; }
+  .reconsider-sub {
+    font-weight: 500 !important;
+    color: var(--text-secondary) !important;
+    font-size: 12.5px !important;
+    margin-top: 10px !important;
+    padding-top: 8px !important;
+    border-top: 1px dashed var(--border) !important;
   }
 
   /* PR #10 C1 — IB#5 rebranch (재선택 진입 후 "이전"으로 복귀) */
@@ -5674,17 +5718,15 @@ function renderQuestion(q, questionNum, totalNum) {
   }
 
   // PR #9 C2: D20 "C형 목표 확정 순간" 안내 박스 (D20 문항에서만 표시)
+  // PR #11 C3: 재제시 모드에서는 d20-reconsider-framing이 같은 역할을 더 명확히 수행 → pivot 박스 생략
   const isD20 = STATE.currentPart === 'D_stage3' && q.id && q.id.startsWith('D20-');
-  const d20PivotHtml = isD20 ? `
+  const d20PivotHtml = (isD20 && !STATE.D20_reconsider_mode) ? `
     <div class="d20-pivot-notice">
       <div class="d20-pivot-icon">🎯</div>
       <div class="d20-pivot-text">
         <strong>C형 목표 확정 순간</strong>
-        ${STATE.D20_reconsider_mode
-          ? `<p>방향을 다시 살펴보는 중입니다. 이번엔 다른 후보도 신중하게 봐주세요.</p>
-             <p class="d20-pivot-sub">새 선택이 당신의 <em>C형 목표</em>로 갱신되고, Phase 3 진행에 반영됩니다.</p>`
-          : `<p>지금 선택이 당신의 <em>C형 목표</em>가 됩니다.<br>Phase 3와 100일 챌린지가 이 목표를 중심으로 진행됩니다.</p>
-             <p class="d20-pivot-sub">신중하게, 하지만 부담 없이 가장 끌리는 것을 골라주세요. OT에서 함께 다듬을 수 있습니다.</p>`}
+        <p>지금 선택이 당신의 <em>C형 목표</em>가 됩니다.<br>Phase 3와 100일 챌린지가 이 목표를 중심으로 진행됩니다.</p>
+        <p class="d20-pivot-sub">신중하게, 하지만 부담 없이 가장 끌리는 것을 골라주세요. OT에서 함께 다듬을 수 있습니다.</p>
       </div>
     </div>
   ` : '';
@@ -5981,6 +6023,31 @@ function buildQ41Text() {
   return `최종 결과: 당신이 가장 포기할 수 없는 방향은 ${label}. 이것이 맞나요?`;
 }
 
+// PR #11 C3: D20 재제시 모드 framing — reMatched 5후보 구성(2 same + 2 cross + 1 OT)을 명시
+function buildD20ReconsiderFramingHtml(reMatched) {
+  const sameCount  = (reMatched || []).filter(g => g.route === STATE.route && !g.is_defer).length;
+  const crossCount = (reMatched || []).filter(g => g.route !== STATE.route && !g.is_defer).length;
+  const hasOt      = (reMatched || []).some(g => g.is_defer === true);
+
+  const items = [];
+  if (sameCount > 0)  items.push(`<li>같은 루트의 다른 후보 (${sameCount}개)</li>`);
+  if (crossCount > 0) items.push(`<li>다른 루트의 후보 (${crossCount}개) — 가능성 확장</li>`);
+  if (hasOt)          items.push(`<li>"OT에서 정하기" — 결정을 보류</li>`);
+  const listHtml = items.length ? `<ul class="reconsider-list">${items.join('')}</ul>` : '';
+
+  return `
+    <div class="d20-reconsider-framing">
+      <div class="reconsider-icon">♻️</div>
+      <div class="reconsider-text">
+        <strong>재탐색 모드</strong>
+        <p>"다른 방향도 살펴보고 싶어요"를 선택하셔서, <em>첫 선택과 다른 후보들</em>을 보여드립니다.</p>
+        ${listHtml}
+        <p class="reconsider-sub">새 선택이 당신의 C형 목표로 갱신됩니다. 첫 선택으로 돌아가려면 "이전" 버튼을 누르세요.</p>
+      </div>
+    </div>
+  `;
+}
+
 // D20 적응형 옵션 렌더
 function renderD20AdaptiveOptions(q) {
   // PR #9 C1: 재제시 모드 — 다른 후보 5개 (same 2 + cross 2 + OT defer 1)
@@ -5999,8 +6066,8 @@ function renderD20AdaptiveOptions(q) {
       }
     }));
     q._dynamicOptions = reOptions;
-    const noticeHtml = `<div class="d20-reconsider-notice">방향을 다시 살펴봅니다. 이번엔 다른 후보도 더 신중하게 봐주세요.</div>`;
-    return noticeHtml + renderOptions(reOptions, q.id);
+    const framingHtml = buildD20ReconsiderFramingHtml(reMatched);
+    return framingHtml + renderOptions(reOptions, q.id);
   }
 
   const matched = matchGoalsForD20(STATE.answers, STATE.route);
