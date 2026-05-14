@@ -42,6 +42,9 @@
     --success: #22C55E;
     --warning: #F59E0B;
     --danger: #EF4444;
+    --signal-strong: #1A8F6A;
+    --signal-weak: #C2410C;
+    --signal-weak-bg: #FFF7ED;
     --gradient-premium: linear-gradient(135deg, #1B2A4A 0%, #1A8F6A 100%);
     --gradient-soft: linear-gradient(180deg, #FFFFFF 0%, #E8F5EF 100%);
   }
@@ -459,22 +462,40 @@
     text-transform: uppercase; margin-bottom: 14px;
   }
   .profile-summary .ps-legend {
-    font-size: 13px; color: var(--text-secondary);
-    line-height: 1.55; margin: 0 0 14px;
+    margin: 0 0 14px;
     padding-bottom: 12px; border-bottom: 1px dashed var(--border);
   }
-  .profile-summary .ps-legend strong { color: var(--navy); font-weight: 700; }
+  .profile-summary .ps-legend-row {
+    display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap; margin-bottom: 6px;
+  }
+  .profile-summary .legend-strong {
+    color: var(--signal-strong); font-weight: 700;
+    font-size: 13.5px; letter-spacing: 0.01em;
+  }
+  .profile-summary .legend-weak {
+    color: var(--signal-weak); font-weight: 700;
+    font-size: 13.5px; letter-spacing: 0.01em;
+  }
+  .profile-summary .legend-sep {
+    color: var(--text-muted); font-weight: 400;
+  }
+  .profile-summary .ps-legend-desc {
+    font-size: 13px; font-weight: 500;
+    color: var(--text-secondary); line-height: 1.5;
+    margin: 0;
+  }
   .profile-summary .ps-item {
     display: flex; flex-direction: column; gap: 4px;
     padding: 12px 0; border-bottom: 1px solid var(--border);
   }
   .profile-summary .ps-item:last-of-type { border-bottom: none; padding-bottom: 4px; }
   .profile-summary .ps-axis {
-    font-size: 12px; font-weight: 700;
+    font-size: 13px; font-weight: 700;
     letter-spacing: 0.03em;
   }
-  .profile-summary .ps-axis.high { color: var(--teal); }
-  .profile-summary .ps-axis.low  { color: var(--navy); }
+  .profile-summary .ps-axis.high { color: var(--signal-strong); }
+  .profile-summary .ps-axis.low  { color: var(--signal-weak); }
   .profile-summary .ps-text {
     font-size: 15px; color: var(--text-primary);
     font-weight: 500; line-height: 1.45;
@@ -570,6 +591,43 @@
     font-size: 13px; line-height: 1.5; font-weight: 500;
     margin: 0 0 12px;
     border-left: 3px solid var(--teal);
+  }
+
+  /* PR #11 C2 — Phase 2 #47 (E14) 검증 문항 framing — 의도 명시 */
+  .verification-framing {
+    display: flex; gap: 12px;
+    margin: 0 0 18px;
+    padding: 16px;
+    background: linear-gradient(135deg, #FFFBEA 0%, #fff 100%);
+    border-left: 4px solid var(--gold);
+    border-radius: 10px;
+  }
+  .verification-icon {
+    font-size: 24px; line-height: 1; flex-shrink: 0;
+  }
+  .verification-text { flex: 1; min-width: 0; }
+  .verification-text strong {
+    display: block;
+    font-size: 12px; font-weight: 700;
+    color: var(--gold); letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .verification-text p {
+    font-size: 14px; font-weight: 600;
+    color: var(--navy); line-height: 1.5;
+    margin: 0 0 6px;
+  }
+  .verification-text em {
+    font-style: normal;
+    color: var(--teal-dark);
+    font-weight: 700;
+  }
+  .verification-sub {
+    font-weight: 500 !important;
+    color: var(--text-secondary) !important;
+    font-size: 13px !important;
+    margin-top: 8px !important;
   }
 
   /* E14 C형 목표 카드 (옵션 본문 위 분리 표시) */
@@ -740,7 +798,7 @@
     font-size: 13px !important;
   }
 
-  /* PR #9 C1 — D20 재제시 안내 */
+  /* PR #9 C1 — D20 재제시 안내 (PR #11 C3에서 framing으로 강화) */
   .d20-reconsider-notice {
     background: var(--teal-light);
     color: var(--navy);
@@ -750,6 +808,50 @@
     margin-bottom: 14px;
     font-size: 14px; font-weight: 600;
     line-height: 1.5;
+  }
+
+  /* PR #11 C3 — D20 재제시 모드 framing (재탐색 모드 명시) */
+  .d20-reconsider-framing {
+    display: flex; gap: 12px;
+    margin: 0 0 18px;
+    padding: 18px;
+    background: linear-gradient(135deg, #F0FDF4 0%, var(--teal-light) 100%);
+    border-left: 4px solid var(--teal);
+    border-radius: 12px;
+  }
+  .reconsider-icon {
+    font-size: 28px; line-height: 1; flex-shrink: 0;
+  }
+  .reconsider-text { flex: 1; min-width: 0; }
+  .reconsider-text strong {
+    display: block;
+    font-size: 12px; font-weight: 700;
+    color: var(--teal-dark); letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .reconsider-text p {
+    font-size: 14px; font-weight: 600;
+    color: var(--navy); line-height: 1.5;
+    margin: 0 0 8px;
+  }
+  .reconsider-text em {
+    font-style: normal;
+    color: var(--teal-dark); font-weight: 700;
+  }
+  .reconsider-list {
+    margin: 6px 0 4px 18px; padding: 0;
+    font-size: 13.5px; font-weight: 500;
+    color: var(--navy); line-height: 1.7;
+  }
+  .reconsider-list li { margin-bottom: 2px; }
+  .reconsider-sub {
+    font-weight: 500 !important;
+    color: var(--text-secondary) !important;
+    font-size: 12.5px !important;
+    margin-top: 10px !important;
+    padding-top: 8px !important;
+    border-top: 1px dashed var(--border) !important;
   }
 
   /* PR #10 C1 — IB#5 rebranch (재선택 진입 후 "이전"으로 복귀) */
@@ -5155,6 +5257,30 @@ function extractFinalGoal(answers) {
   };
 }
 
+// PR #11 C2 — 검증 문항 식별 (보기 (A) 또는 (B)가 D20 C형 목표 statement인 경우)
+// 현재 적용: E14 (Phase 2 #47) — (A)가 사용자의 D20 선택 목표
+function isVerificationQuestion(q) {
+  if (!q || !q.id) return false;
+  if (q.id !== 'E14') return false;
+  const state = getE14State(STATE);
+  return !!state?.optionA_goal?.achievement_form;
+}
+
+function buildVerificationFramingHtml(q) {
+  if (!isVerificationQuestion(q)) return '';
+  return `
+    <div class="verification-framing">
+      <div class="verification-icon">💭</div>
+      <div class="verification-text">
+        <strong>흔들림 검증</strong>
+        <p>당신이 <em>D20에서 선택한 C형 목표</em>가 (A)입니다.<br>
+        다른 보기들과 비교하면서 정말 당신의 갈망인지 확인합니다.</p>
+        <p class="verification-sub">흔들림 없이 (A)에 끌리면 강한 신호, 다른 보기에 더 끌리면 OT에서 함께 다듬을 영역입니다.</p>
+      </div>
+    </div>
+  `;
+}
+
 // PR #10 C5 — C형 목표 영역 추출 (Phase 3 framing·배지·차트 강조용)
 // 반환값: 'health' | 'finance' | 'growth' | 'relationship' | 'contribution' | null
 // 5영역 외 axis8 영역(lifestyle 등)은 null로 폴백 (Phase 3 슬라이더가 5영역 한정)
@@ -5592,17 +5718,15 @@ function renderQuestion(q, questionNum, totalNum) {
   }
 
   // PR #9 C2: D20 "C형 목표 확정 순간" 안내 박스 (D20 문항에서만 표시)
+  // PR #11 C3: 재제시 모드에서는 d20-reconsider-framing이 같은 역할을 더 명확히 수행 → pivot 박스 생략
   const isD20 = STATE.currentPart === 'D_stage3' && q.id && q.id.startsWith('D20-');
-  const d20PivotHtml = isD20 ? `
+  const d20PivotHtml = (isD20 && !STATE.D20_reconsider_mode) ? `
     <div class="d20-pivot-notice">
       <div class="d20-pivot-icon">🎯</div>
       <div class="d20-pivot-text">
         <strong>C형 목표 확정 순간</strong>
-        ${STATE.D20_reconsider_mode
-          ? `<p>방향을 다시 살펴보는 중입니다. 이번엔 다른 후보도 신중하게 봐주세요.</p>
-             <p class="d20-pivot-sub">새 선택이 당신의 <em>C형 목표</em>로 갱신되고, Phase 3 진행에 반영됩니다.</p>`
-          : `<p>지금 선택이 당신의 <em>C형 목표</em>가 됩니다.<br>Phase 3와 100일 챌린지가 이 목표를 중심으로 진행됩니다.</p>
-             <p class="d20-pivot-sub">신중하게, 하지만 부담 없이 가장 끌리는 것을 골라주세요. OT에서 함께 다듬을 수 있습니다.</p>`}
+        <p>지금 선택이 당신의 <em>C형 목표</em>가 됩니다.<br>Phase 3와 100일 챌린지가 이 목표를 중심으로 진행됩니다.</p>
+        <p class="d20-pivot-sub">신중하게, 하지만 부담 없이 가장 끌리는 것을 골라주세요. OT에서 함께 다듬을 수 있습니다.</p>
       </div>
     </div>
   ` : '';
@@ -5616,10 +5740,14 @@ function renderQuestion(q, questionNum, totalNum) {
     }
   }
 
+  // PR #11 C2: Phase 2 #47 (E14) 검증 문항 의도 명시 framing
+  const verificationFramingHtml = buildVerificationFramingHtml(q);
+
   body += `
     <div class="qcard" data-qid="${q.id}">
       <div class="qmeta">${partMeta} · <span class="qnumber">${questionNum}/${totalNum}</span></div>
       ${d20PivotHtml}
+      ${verificationFramingHtml}
       ${cGoalBadgeHtml}
       <div class="qtext ${(q.type === 'slider' || q.type === 'slider10') ? 'small' : ''}">${escapeHtml(qtext)}</div>
   `;
@@ -5895,6 +6023,31 @@ function buildQ41Text() {
   return `최종 결과: 당신이 가장 포기할 수 없는 방향은 ${label}. 이것이 맞나요?`;
 }
 
+// PR #11 C3: D20 재제시 모드 framing — reMatched 5후보 구성(2 same + 2 cross + 1 OT)을 명시
+function buildD20ReconsiderFramingHtml(reMatched) {
+  const sameCount  = (reMatched || []).filter(g => g.route === STATE.route && !g.is_defer).length;
+  const crossCount = (reMatched || []).filter(g => g.route !== STATE.route && !g.is_defer).length;
+  const hasOt      = (reMatched || []).some(g => g.is_defer === true);
+
+  const items = [];
+  if (sameCount > 0)  items.push(`<li>같은 루트의 다른 후보 (${sameCount}개)</li>`);
+  if (crossCount > 0) items.push(`<li>다른 루트의 후보 (${crossCount}개) — 가능성 확장</li>`);
+  if (hasOt)          items.push(`<li>"OT에서 정하기" — 결정을 보류</li>`);
+  const listHtml = items.length ? `<ul class="reconsider-list">${items.join('')}</ul>` : '';
+
+  return `
+    <div class="d20-reconsider-framing">
+      <div class="reconsider-icon">♻️</div>
+      <div class="reconsider-text">
+        <strong>재탐색 모드</strong>
+        <p>"다른 방향도 살펴보고 싶어요"를 선택하셔서, <em>첫 선택과 다른 후보들</em>을 보여드립니다.</p>
+        ${listHtml}
+        <p class="reconsider-sub">새 선택이 당신의 C형 목표로 갱신됩니다. 첫 선택으로 돌아가려면 "이전" 버튼을 누르세요.</p>
+      </div>
+    </div>
+  `;
+}
+
 // D20 적응형 옵션 렌더
 function renderD20AdaptiveOptions(q) {
   // PR #9 C1: 재제시 모드 — 다른 후보 5개 (same 2 + cross 2 + OT defer 1)
@@ -5913,8 +6066,8 @@ function renderD20AdaptiveOptions(q) {
       }
     }));
     q._dynamicOptions = reOptions;
-    const noticeHtml = `<div class="d20-reconsider-notice">방향을 다시 살펴봅니다. 이번엔 다른 후보도 더 신중하게 봐주세요.</div>`;
-    return noticeHtml + renderOptions(reOptions, q.id);
+    const framingHtml = buildD20ReconsiderFramingHtml(reMatched);
+    return framingHtml + renderOptions(reOptions, q.id);
   }
 
   const matched = matchGoalsForD20(STATE.answers, STATE.route);
@@ -6896,10 +7049,14 @@ function renderProfileSummary(axes, answers) {
   return `
     <div class="profile-summary">
       <div class="ps-title">당신의 프로필 요약</div>
-      <p class="ps-legend">
-        <strong>▲</strong> 강한 신호 (4.0 이상) · <strong>▼</strong> 약한 신호 (2.0 이하)<br/>
-        당신의 답변이 이 방향으로 명확히 기울어진 축입니다.
-      </p>
+      <div class="ps-legend">
+        <div class="ps-legend-row">
+          <span class="legend-strong">▲ 강한 신호 (4.0 이상)</span>
+          <span class="legend-sep">·</span>
+          <span class="legend-weak">▼ 약한 신호 (2.0 이하)</span>
+        </div>
+        <p class="ps-legend-desc">당신의 답변이 이 방향으로 명확히 기울어진 축입니다.</p>
+      </div>
       ${itemsHtml}
     </div>
   `;
