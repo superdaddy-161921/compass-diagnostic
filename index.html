@@ -42,6 +42,9 @@
     --success: #22C55E;
     --warning: #F59E0B;
     --danger: #EF4444;
+    --signal-strong: #1A8F6A;
+    --signal-weak: #C2410C;
+    --signal-weak-bg: #FFF7ED;
     --gradient-premium: linear-gradient(135deg, #1B2A4A 0%, #1A8F6A 100%);
     --gradient-soft: linear-gradient(180deg, #FFFFFF 0%, #E8F5EF 100%);
   }
@@ -459,22 +462,40 @@
     text-transform: uppercase; margin-bottom: 14px;
   }
   .profile-summary .ps-legend {
-    font-size: 13px; color: var(--text-secondary);
-    line-height: 1.55; margin: 0 0 14px;
+    margin: 0 0 14px;
     padding-bottom: 12px; border-bottom: 1px dashed var(--border);
   }
-  .profile-summary .ps-legend strong { color: var(--navy); font-weight: 700; }
+  .profile-summary .ps-legend-row {
+    display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap; margin-bottom: 6px;
+  }
+  .profile-summary .legend-strong {
+    color: var(--signal-strong); font-weight: 700;
+    font-size: 13.5px; letter-spacing: 0.01em;
+  }
+  .profile-summary .legend-weak {
+    color: var(--signal-weak); font-weight: 700;
+    font-size: 13.5px; letter-spacing: 0.01em;
+  }
+  .profile-summary .legend-sep {
+    color: var(--text-muted); font-weight: 400;
+  }
+  .profile-summary .ps-legend-desc {
+    font-size: 13px; font-weight: 500;
+    color: var(--text-secondary); line-height: 1.5;
+    margin: 0;
+  }
   .profile-summary .ps-item {
     display: flex; flex-direction: column; gap: 4px;
     padding: 12px 0; border-bottom: 1px solid var(--border);
   }
   .profile-summary .ps-item:last-of-type { border-bottom: none; padding-bottom: 4px; }
   .profile-summary .ps-axis {
-    font-size: 12px; font-weight: 700;
+    font-size: 13px; font-weight: 700;
     letter-spacing: 0.03em;
   }
-  .profile-summary .ps-axis.high { color: var(--teal); }
-  .profile-summary .ps-axis.low  { color: var(--navy); }
+  .profile-summary .ps-axis.high { color: var(--signal-strong); }
+  .profile-summary .ps-axis.low  { color: var(--signal-weak); }
   .profile-summary .ps-text {
     font-size: 15px; color: var(--text-primary);
     font-weight: 500; line-height: 1.45;
@@ -6896,10 +6917,14 @@ function renderProfileSummary(axes, answers) {
   return `
     <div class="profile-summary">
       <div class="ps-title">당신의 프로필 요약</div>
-      <p class="ps-legend">
-        <strong>▲</strong> 강한 신호 (4.0 이상) · <strong>▼</strong> 약한 신호 (2.0 이하)<br/>
-        당신의 답변이 이 방향으로 명확히 기울어진 축입니다.
-      </p>
+      <div class="ps-legend">
+        <div class="ps-legend-row">
+          <span class="legend-strong">▲ 강한 신호 (4.0 이상)</span>
+          <span class="legend-sep">·</span>
+          <span class="legend-weak">▼ 약한 신호 (2.0 이하)</span>
+        </div>
+        <p class="ps-legend-desc">당신의 답변이 이 방향으로 명확히 기울어진 축입니다.</p>
+      </div>
       ${itemsHtml}
     </div>
   `;
