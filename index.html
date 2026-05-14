@@ -593,6 +593,43 @@
     border-left: 3px solid var(--teal);
   }
 
+  /* PR #11 C2 — Phase 2 #47 (E14) 검증 문항 framing — 의도 명시 */
+  .verification-framing {
+    display: flex; gap: 12px;
+    margin: 0 0 18px;
+    padding: 16px;
+    background: linear-gradient(135deg, #FFFBEA 0%, #fff 100%);
+    border-left: 4px solid var(--gold);
+    border-radius: 10px;
+  }
+  .verification-icon {
+    font-size: 24px; line-height: 1; flex-shrink: 0;
+  }
+  .verification-text { flex: 1; min-width: 0; }
+  .verification-text strong {
+    display: block;
+    font-size: 12px; font-weight: 700;
+    color: var(--gold); letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .verification-text p {
+    font-size: 14px; font-weight: 600;
+    color: var(--navy); line-height: 1.5;
+    margin: 0 0 6px;
+  }
+  .verification-text em {
+    font-style: normal;
+    color: var(--teal-dark);
+    font-weight: 700;
+  }
+  .verification-sub {
+    font-weight: 500 !important;
+    color: var(--text-secondary) !important;
+    font-size: 13px !important;
+    margin-top: 8px !important;
+  }
+
   /* E14 C형 목표 카드 (옵션 본문 위 분리 표시) */
   .e14-goal-card {
     background: var(--teal-light); border-radius: 12px;
@@ -5176,6 +5213,30 @@ function extractFinalGoal(answers) {
   };
 }
 
+// PR #11 C2 — 검증 문항 식별 (보기 (A) 또는 (B)가 D20 C형 목표 statement인 경우)
+// 현재 적용: E14 (Phase 2 #47) — (A)가 사용자의 D20 선택 목표
+function isVerificationQuestion(q) {
+  if (!q || !q.id) return false;
+  if (q.id !== 'E14') return false;
+  const state = getE14State(STATE);
+  return !!state?.optionA_goal?.achievement_form;
+}
+
+function buildVerificationFramingHtml(q) {
+  if (!isVerificationQuestion(q)) return '';
+  return `
+    <div class="verification-framing">
+      <div class="verification-icon">💭</div>
+      <div class="verification-text">
+        <strong>흔들림 검증</strong>
+        <p>당신이 <em>D20에서 선택한 C형 목표</em>가 (A)입니다.<br>
+        다른 보기들과 비교하면서 정말 당신의 갈망인지 확인합니다.</p>
+        <p class="verification-sub">흔들림 없이 (A)에 끌리면 강한 신호, 다른 보기에 더 끌리면 OT에서 함께 다듬을 영역입니다.</p>
+      </div>
+    </div>
+  `;
+}
+
 // PR #10 C5 — C형 목표 영역 추출 (Phase 3 framing·배지·차트 강조용)
 // 반환값: 'health' | 'finance' | 'growth' | 'relationship' | 'contribution' | null
 // 5영역 외 axis8 영역(lifestyle 등)은 null로 폴백 (Phase 3 슬라이더가 5영역 한정)
@@ -5637,10 +5698,14 @@ function renderQuestion(q, questionNum, totalNum) {
     }
   }
 
+  // PR #11 C2: Phase 2 #47 (E14) 검증 문항 의도 명시 framing
+  const verificationFramingHtml = buildVerificationFramingHtml(q);
+
   body += `
     <div class="qcard" data-qid="${q.id}">
       <div class="qmeta">${partMeta} · <span class="qnumber">${questionNum}/${totalNum}</span></div>
       ${d20PivotHtml}
+      ${verificationFramingHtml}
       ${cGoalBadgeHtml}
       <div class="qtext ${(q.type === 'slider' || q.type === 'slider10') ? 'small' : ''}">${escapeHtml(qtext)}</div>
   `;
