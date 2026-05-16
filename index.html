@@ -1069,6 +1069,35 @@
                  "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic",
                  sans-serif !important;
   }
+
+  /* C2: 결과 저장 진행/완료 토스트 */
+  .save-progress-toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 20px;
+    background: var(--navy); color: #fff;
+    border-radius: 24px;
+    font-size: 14px; font-weight: 600;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    opacity: 0; pointer-events: none;
+    z-index: 9999;
+    transition: opacity 0.3s ease;
+    max-width: 90vw;
+  }
+  .save-progress-toast.visible { opacity: 1; }
+  .save-progress-toast.success { background: var(--teal); }
+  .save-spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spinSave 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spinSave {
+    to { transform: rotate(360deg); }
+  }
 </style>
 </head>
 
@@ -6750,89 +6779,212 @@ async function captureResultImageWithTimeout(target, timeoutMs = 15000) {
   ]);
 }
 
-async function saveIBImage(el) {
-  const target = el.querySelector('.ib-inner');
-  if (!window.html2canvas || !target) return;
+// PR #12 C2: canvas → Blob (Android 호환 — toBlob null·hang 폴백 포함)
+function canvasToBlob(canvas, type = 'image/png', quality = 0.95) {
+  return new Promise((resolve, reject) => {
+    if (canvas && canvas.toBlob) {
+      let settled = false;
+      // 일부 Android Chrome 버전에서 toBlob 콜백 미호출 케이스 대비 5초 안전망
+      const watchdog = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        try { resolve(dataURLToBlob(canvas.toDataURL(type, quality), type)); }
+        catch (e) { reject(e); }
+      }, 5000);
+      canvas.toBlob(blob => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(watchdog);
+        if (blob) resolve(blob);
+        else {
+          try { resolve(dataURLToBlob(canvas.toDataURL(type, quality), type)); }
+          catch (e) { reject(new Error('canvas.toBlob returned null')); }
+        }
+      }, type, quality);
+    } else if (canvas && canvas.toDataURL) {
+      try { resolve(dataURLToBlob(canvas.toDataURL(type, quality), type)); }
+      catch (e) { reject(e); }
+    } else {
+      reject(new Error('canvas_invalid'));
+    }
+  });
+}
 
-  const phaseTag = STATE.currentPhase === 3 ? '최종결과'
-                 : STATE.currentPhase === 2 ? 'Phase2'
-                 : 'Phase1';
-  const filename = `나침반_${phaseTag}_${(STATE.participantName||'나의결과').replace(/\s+/g,'_')}_${Date.now()}.png`;
-  const btn = el.querySelector('#ib-save-btn');
-  if (btn) { btn.disabled = true; btn.textContent = '이미지 생성 중…'; }
+function dataURLToBlob(dataURL, type) {
+  const binary = atob(dataURL.split(',')[1]);
+  const array = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
+  return new Blob([array], { type });
+}
+
+// PR #12 C2: Android 호환 다운로드 트리거
+function downloadBlobAsImage(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.style.display = 'none';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    try { document.body.removeChild(a); } catch (e) {}
+    URL.revokeObjectURL(url);
+  }, 200);
+}
+
+// PR #12 C2: 진행/완료 토스트
+function showSaveProgress(message) {
+  let el = document.querySelector('.save-progress-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'save-progress-toast';
+    document.body.appendChild(el);
+  }
+  el.classList.remove('success');
+  el.innerHTML = `<div class="save-spinner" aria-hidden="true"></div><span>${escapeHtml(message)}</span>`;
+  void el.offsetWidth;
+  el.classList.add('visible');
+}
+function showSaveSuccess(message = '✓ 저장 완료') {
+  const el = document.querySelector('.save-progress-toast');
+  if (!el) return;
+  el.classList.add('success');
+  el.innerHTML = `<span>${escapeHtml(message)}</span>`;
+  setTimeout(() => hideSaveProgress(), 1800);
+}
+function hideSaveProgress() {
+  const el = document.querySelector('.save-progress-toast');
+  if (!el) return;
+  el.classList.remove('visible');
+  setTimeout(() => { try { el.remove(); } catch (e) {} }, 300);
+}
+
+// PR #12 C2: 새 탭에 이미지 + longpress 안내 (Android Web Share 미지원·다운로드 트리거 실패 시 폴백)
+function openImageInNewTabForLongpress(blob) {
+  const url = URL.createObjectURL(blob);
+  const w = window.open('', '_blank');
+  if (!w) return false;
+  w.document.open();
+  w.document.write(
+    '<!doctype html><html lang="ko"><head>' +
+    '<meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+    '<title>나침반 결과</title>' +
+    '<style>' +
+      'body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Pretendard Variable","Apple SD Gothic Neo",sans-serif;background:#F8F9FA;color:#1B2A4A;text-align:center;}' +
+      '.msg{padding:14px 16px;font-size:15px;background:#1A8F6A;color:#fff;font-weight:700;line-height:1.5;}' +
+      '.sub{padding:10px 16px;font-size:13px;color:#5A6B7D;background:#fff;}' +
+      'img{width:100%;display:block;}' +
+    '</style></head><body>' +
+    '<div class="msg">이미지를 <strong>길게 눌러</strong> "사진에 저장" 또는 "이미지 다운로드"를 선택해주세요</div>' +
+    '<div class="sub">저장 후 이 창은 닫으셔도 됩니다.</div>' +
+    '<img src="' + url + '" alt="나침반 결과" />' +
+    '</body></html>'
+  );
+  w.document.close();
+  return true;
+}
+
+// PR #12 C2: 저장 실패 시 안전망 (C3에서 본격 다이얼로그로 확장)
+let _lastSaveContext = null;
+function showSaveErrorFallback(err) {
+  hideSaveProgress();
+  console.error('[CompassResult] save fallback triggered:', err);
+  alert('결과 저장에 실패했어요. 잠시 후 다시 시도해주세요.\n\n오류: ' + (err && err.message ? err.message : '알 수 없음'));
+}
+
+// PR #12 C2: 결과 저장 통합 흐름
+async function handleSaveResult(opts = {}) {
+  const { target, filename, btn, phaseTag } = opts;
+  if (!target) {
+    showSaveErrorFallback(new Error('result_target_missing'));
+    return;
+  }
+  _lastSaveContext = { target, filename, btn, phaseTag };
+
+  if (btn) { btn.disabled = true; btn.dataset._origLabel = btn.textContent; btn.textContent = '이미지 생성 중…'; }
+  showSaveProgress('이미지 생성 중…');
 
   try {
-    const canvas = await html2canvas(target, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
-    const blob = await new Promise(res => canvas.toBlob(res, 'image/png', 0.95));
-    if (!blob) throw new Error('blob conversion failed');
+    const canvas = await captureResultImageWithTimeout(target, 15000);
+    showSaveProgress('파일 준비 중…');
+    const blob = await canvasToBlob(canvas);
+    if (!blob) throw new Error('blob_null');
 
     const file = new File([blob], filename, { type: 'image/png' });
     const canShareFiles = !!(navigator.canShare && navigator.canShare({ files: [file] }));
 
-    // 1) Web Share API (파일 공유 가능한 경우 — iOS Safari 14.5+ / Android Chrome 등)
+    // 1) Web Share API (iOS Safari·일부 Android)
     if (canShareFiles && navigator.share) {
       try {
+        hideSaveProgress();
         await navigator.share({
           files: [file],
           title: '100일 나침반 진단 결과',
           text: `${STATE.participantName || '나'}의 갈망 프로필`
         });
-        gaEvent('compass_save_result', { format: 'share_files', phase: 1 });
+        gaEvent('compass_save_result', { status: 'success', format: 'share_files', phaseTag });
         return;
       } catch (err) {
-        // 사용자 취소(AbortError)는 그냥 종료
         if (err && err.name === 'AbortError') return;
-        // 그 외 실패 시 다음 단계로 fallthrough
+        // fallthrough
       }
     }
 
-    // 2) 모바일 + Web Share 미지원 → 새 창에 이미지 + 길게 눌러 저장 안내
-    if (isMobileDevice()) {
-      const url = URL.createObjectURL(blob);
-      const w = window.open('', '_blank');
-      if (!w) {
-        alert('새 창이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도해주세요.');
+    // 2) Android — 다운로드 → 실패 시 새 탭(longpress) 폴백
+    if (isAndroidDevice()) {
+      try {
+        downloadBlobAsImage(blob, filename);
+        gaEvent('compass_save_result', { status: 'success', format: 'android_download', phaseTag });
+        showSaveSuccess('✓ 저장 완료 — Downloads 폴더 확인');
         return;
+      } catch (err) {
+        const ok = openImageInNewTabForLongpress(blob);
+        if (ok) {
+          gaEvent('compass_save_result', { status: 'success', format: 'newtab_longpress', phaseTag });
+          hideSaveProgress();
+          return;
+        }
+        throw err;
       }
-      w.document.open();
-      w.document.write(
-        '<!doctype html><html lang="ko"><head>' +
-        '<meta charset="utf-8">' +
-        '<meta name="viewport" content="width=device-width, initial-scale=1">' +
-        '<title>나침반 결과</title>' +
-        '<style>' +
-          'body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Pretendard Variable","Apple SD Gothic Neo",sans-serif;background:#F8F9FA;color:#1B2A4A;text-align:center;}' +
-          '.msg{padding:14px 16px;font-size:15px;background:#1A8F6A;color:#fff;font-weight:700;line-height:1.5;}' +
-          '.sub{padding:10px 16px;font-size:13px;color:#5A6B7D;background:#fff;}' +
-          'img{width:100%;display:block;}' +
-        '</style></head><body>' +
-        '<div class="msg">이미지를 <strong>길게 눌러</strong> "사진에 저장" 또는 "이미지 다운로드"를 선택해주세요</div>' +
-        '<div class="sub">저장 후 이 창은 닫으셔도 됩니다.</div>' +
-        '<img src="' + url + '" alt="나침반 결과" />' +
-        '</body></html>'
-      );
-      w.document.close();
-      gaEvent('compass_save_result', { format: 'newtab_longpress', phase: 1 });
+    }
+
+    // 3) 그 외 모바일 → 새 탭
+    if (isMobileDevice()) {
+      const ok = openImageInNewTabForLongpress(blob);
+      if (!ok) throw new Error('popup_blocked');
+      gaEvent('compass_save_result', { status: 'success', format: 'newtab_longpress', phaseTag });
+      hideSaveProgress();
       return;
     }
 
-    // 3) 데스크톱 → 기존 다운로드
-    const link = document.createElement('a');
-    link.download = filename;
-    link.href = URL.createObjectURL(blob);
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => {
-      URL.revokeObjectURL(link.href);
-      link.remove();
-    }, 1000);
-    gaEvent('compass_save_result', { format: 'download', phase: 1 });
+    // 4) 데스크톱
+    downloadBlobAsImage(blob, filename);
+    gaEvent('compass_save_result', { status: 'success', format: 'download', phaseTag });
+    showSaveSuccess('✓ 저장 완료');
   } catch (err) {
-    console.error('saveIBImage error:', err);
-    alert('결과 저장 중 문제가 발생했습니다. 다시 시도해주세요.');
+    console.error('[CompassResult] handleSaveResult failed:', err);
+    gaEvent('compass_save_result', { status: 'failed', error: err && err.message || String(err), phaseTag });
+    showSaveErrorFallback(err);
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '결과 저장하기'; }
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = btn.dataset._origLabel || '결과 저장하기';
+      delete btn.dataset._origLabel;
+    }
   }
+}
+
+// 기존 saveIBImage — 새 파이프라인에 위임 (호출처 호환 유지)
+async function saveIBImage(el) {
+  const target = el && el.querySelector ? el.querySelector('.ib-inner') : null;
+  const btn = el && el.querySelector ? el.querySelector('#ib-save-btn') : null;
+  const phaseTag = STATE.currentPhase === 3 ? '최종결과'
+                 : STATE.currentPhase === 2 ? 'Phase2'
+                 : 'Phase1';
+  const filename = `나침반_${phaseTag}_${(STATE.participantName||'나의결과').replace(/\s+/g,'_')}_${Date.now()}.png`;
+  await handleSaveResult({ target, filename, btn, phaseTag });
 }
 
 /* IB1: 키워드 1개 */
