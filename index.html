@@ -1250,6 +1250,68 @@
   @keyframes inlineToastOut {
     to { opacity: 0; transform: translate(-50%, -20px); }
   }
+
+  /* C4: IB#8 결과 페이지에 항상 보이는 보조 안전망 옵션 */
+  .ib8-save-options {
+    margin: 24px 0 16px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .save-image-btn {
+    background: var(--teal); color: #fff;
+    border: none; padding: 16px;
+    border-radius: 12px;
+    font-size: 15px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    transition: background 0.18s;
+  }
+  .save-image-btn:hover:not(:disabled) { background: var(--teal-dark); }
+  .save-image-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .save-text-btn {
+    background: #fff; color: var(--teal);
+    border: 1.5px solid var(--teal);
+    padding: 13px; border-radius: 12px;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    transition: all 0.18s;
+  }
+  .save-text-btn:hover { background: var(--teal-light); }
+  .result-id-display {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 14px;
+    background: var(--teal-light);
+    border: 1px dashed var(--teal);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.18s;
+  }
+  .result-id-display:hover { background: #D1FAE5; }
+  .result-id-display:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  .id-label {
+    font-weight: 700; color: var(--teal);
+    font-size: 11px; letter-spacing: 0.05em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .id-value {
+    flex: 1; min-width: 0;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px; color: var(--navy);
+    word-break: break-all;
+  }
+  .id-action {
+    font-size: 11px; color: var(--text-secondary);
+    font-weight: 500; flex-shrink: 0;
+  }
+  .result-id-hint {
+    font-size: 12px; font-weight: 500;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 6px 0 0;
+    text-align: center;
+    padding: 0 8px;
+  }
 </style>
 </head>
 
@@ -6829,7 +6891,7 @@ function goPrev() {
 }
 
 /* ---------- 10. 인사이트 브레이크 ---------- */
-function renderInsightBreakShell({ number, label, title, contentHtml, ctaText, onContinue, dark = false, saveBtn = false }) {
+function renderInsightBreakShell({ number, label, title, contentHtml, ctaText, onContinue, dark = false, saveBtn = false, extraSaveBlockHtml = '' }) {
   setProgress(null);
   gaEvent('compass_ib', { number });
 
@@ -6842,6 +6904,7 @@ function renderInsightBreakShell({ number, label, title, contentHtml, ctaText, o
       <div class="ib-content">${contentHtml}</div>
       <div class="ib-actions">
         ${saveBtn ? `<button class="btn btn-secondary" id="ib-save-btn" style="margin-bottom:10px;">결과 저장하기</button>` : ''}
+        ${extraSaveBlockHtml || ''}
         <button class="btn btn-primary" id="ib-cta" disabled>${ctaText}</button>
         <div class="muted center" id="ib-wait" style="margin-top:10px;">잠시 머물러 봅니다…</div>
       </div>
@@ -6867,6 +6930,19 @@ function renderInsightBreakShell({ number, label, title, contentHtml, ctaText, o
     overlay.querySelector('#ib-save-btn').addEventListener('click', () => {
       saveIBImage(overlay);
     });
+  }
+
+  // PR #12 C4: extraSaveBlockHtml 내부 보조 버튼 바인딩 (텍스트 복사·ID 복사)
+  if (extraSaveBlockHtml) {
+    const copyTextBtn = overlay.querySelector('[data-save-action="copy-text"]');
+    if (copyTextBtn) copyTextBtn.addEventListener('click', copyResultAsText);
+    const idBox = overlay.querySelector('[data-save-action="copy-id"]');
+    if (idBox) {
+      idBox.addEventListener('click', copyResultId);
+      idBox.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); copyResultId(); }
+      });
+    }
   }
 
   return overlay;
@@ -8542,6 +8618,25 @@ function renderIB8() {
     </p>
   `;
 
+  // PR #12 C4: IB#8 결과 페이지에 항상 보이는 보조 안전망 옵션
+  const uuidForDisplay = (typeof getOrCreateUUID === 'function') ? getOrCreateUUID() : '';
+  const extraSaveBlockHtml = `
+    <div class="ib8-save-options">
+      <button class="save-text-btn" data-save-action="copy-text">
+        📋 결과를 텍스트로 복사
+      </button>
+      <div class="result-id-display" data-save-action="copy-id" role="button" tabindex="0" aria-label="결과 ID 클립보드에 복사">
+        <span class="id-label">결과 ID</span>
+        <code class="id-value">${escapeHtml(uuidForDisplay)}</code>
+        <span class="id-action">📋 탭하여 복사</span>
+      </div>
+      <p class="result-id-hint">
+        💡 이미지 저장이 안 되면 위 옵션으로 결과를 보관하세요.<br>
+        OT에서 결과 ID를 알려주시면 다시 확인할 수 있어요.
+      </p>
+    </div>
+  `;
+
   renderInsightBreakShell({
     number: 8,
     label: 'Phase 3 · 인사이트 브레이크 2/2 · 최종 결과',
@@ -8549,6 +8644,7 @@ function renderIB8() {
     contentHtml: html,
     ctaText: 'OT에서 만나요',
     saveBtn: true,
+    extraSaveBlockHtml,
     onContinue: () => {
       const uuid = getOrCreateUUID();
       try {
