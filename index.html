@@ -1059,6 +1059,259 @@
     }
     .btn-ghost { height: 44px; font-size: 15px; }
   }
+
+  /* ===== PR #12 — Android 결과 저장 핫픽스 ===== */
+
+  /* C1: 캡처 시 시스템 폰트 fallback (외부 폰트 로드 실패 케이스 안전망) */
+  .capture-mode-fallback-fonts,
+  .capture-mode-fallback-fonts * {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic",
+                 sans-serif !important;
+  }
+
+  /* C2: 결과 저장 진행/완료 토스트 */
+  .save-progress-toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 20px;
+    background: var(--navy); color: #fff;
+    border-radius: 24px;
+    font-size: 14px; font-weight: 600;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    opacity: 0; pointer-events: none;
+    z-index: 9999;
+    transition: opacity 0.3s ease;
+    max-width: 90vw;
+  }
+  .save-progress-toast.visible { opacity: 1; }
+  .save-progress-toast.success { background: var(--teal); }
+  .save-spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spinSave 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spinSave {
+    to { transform: rotate(360deg); }
+  }
+
+  /* C3: 저장 실패 fallback 다이얼로그 + 스크린샷 가이드 + 인라인 토스트 */
+  .save-fallback-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10001; padding: 20px;
+    animation: ibFadeIn 0.25s ease;
+  }
+  .save-fallback-dialog {
+    background: #fff; border-radius: 16px;
+    padding: 28px 24px 20px;
+    max-width: 380px; width: 100%;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+  }
+  .fallback-icon {
+    font-size: 36px; text-align: center;
+    margin-bottom: 10px;
+  }
+  .save-fallback-dialog h2 {
+    font-size: 17px; font-weight: 700;
+    color: var(--navy); text-align: center;
+    margin: 0 0 8px;
+  }
+  .save-fallback-dialog > p {
+    font-size: 14px; font-weight: 500;
+    color: var(--text-secondary);
+    text-align: center; line-height: 1.5;
+    margin: 0 0 20px;
+  }
+  .fallback-options {
+    display: flex; flex-direction: column; gap: 8px;
+    margin-bottom: 12px;
+  }
+  .fallback-btn {
+    padding: 14px 16px;
+    border: 1.5px solid var(--border);
+    background: #fff;
+    border-radius: 10px;
+    font-size: 14px; font-weight: 600;
+    color: var(--navy);
+    cursor: pointer; text-align: left;
+    font-family: inherit;
+    transition: all 0.18s ease;
+  }
+  .fallback-btn:hover {
+    border-color: var(--teal);
+    background: var(--teal-light);
+  }
+  .fallback-btn-retry { border-color: var(--teal); color: var(--teal); }
+  .fallback-btn-retry:hover { background: var(--teal); color: #fff; }
+  .fallback-btn-sub {
+    display: block;
+    font-size: 12px; font-weight: 400;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+  .fallback-close {
+    width: 100%; padding: 10px;
+    background: transparent; border: none;
+    color: var(--text-secondary);
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; font-family: inherit;
+  }
+  .fallback-error-detail {
+    margin-top: 8px; font-size: 11px;
+  }
+  .fallback-error-detail summary {
+    cursor: pointer;
+    color: var(--text-muted);
+    list-style: none;
+  }
+  .fallback-error-detail summary::-webkit-details-marker { display: none; }
+  .fallback-error-detail code {
+    display: block; margin-top: 6px;
+    padding: 8px 10px;
+    background: #F5F7FA; border-radius: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--navy);
+    word-break: break-all;
+  }
+
+  .screenshot-guide-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10002; padding: 20px;
+    animation: ibFadeIn 0.25s ease;
+  }
+  .screenshot-guide-dialog {
+    background: #fff; border-radius: 16px;
+    padding: 24px;
+    max-width: 360px; width: 100%;
+    max-height: 80vh; overflow-y: auto;
+  }
+  .screenshot-guide-dialog h2 {
+    font-size: 16px; font-weight: 700;
+    color: var(--navy); margin: 0 0 16px;
+  }
+  .guide-section {
+    margin-bottom: 14px; padding-bottom: 12px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .guide-section:last-of-type { border-bottom: none; padding-bottom: 0; }
+  .guide-section h3 {
+    font-size: 14px; font-weight: 700;
+    color: var(--teal); margin: 0 0 6px;
+  }
+  .guide-section p {
+    font-size: 13.5px; margin: 0 0 4px;
+    line-height: 1.5; color: var(--navy);
+  }
+  .guide-section strong { color: var(--teal); }
+  .guide-tip {
+    margin-top: 12px; padding: 10px 12px;
+    background: #FFFBEA; border-radius: 8px;
+    font-size: 13px; color: var(--navy);
+    font-weight: 500; line-height: 1.55;
+  }
+  .guide-close {
+    width: 100%; margin-top: 16px;
+    padding: 12px;
+    background: var(--teal); color: #fff;
+    border: none; border-radius: 8px;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+  }
+  .guide-close:hover { background: var(--teal-dark); }
+
+  .inline-toast {
+    position: fixed; top: 80px; left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 18px;
+    background: var(--teal); color: #fff;
+    border-radius: 20px;
+    font-size: 13px; font-weight: 600;
+    z-index: 10003;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    animation: inlineToastIn 0.3s ease-out;
+    max-width: 86vw;
+  }
+  .inline-toast.fade-out {
+    animation: inlineToastOut 0.3s ease-out forwards;
+  }
+  @keyframes inlineToastIn {
+    from { transform: translate(-50%, -20px); opacity: 0; }
+    to   { transform: translateX(-50%); opacity: 1; }
+  }
+  @keyframes inlineToastOut {
+    to { opacity: 0; transform: translate(-50%, -20px); }
+  }
+
+  /* C4: IB#8 결과 페이지에 항상 보이는 보조 안전망 옵션 */
+  .ib8-save-options {
+    margin: 24px 0 16px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .save-image-btn {
+    background: var(--teal); color: #fff;
+    border: none; padding: 16px;
+    border-radius: 12px;
+    font-size: 15px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    transition: background 0.18s;
+  }
+  .save-image-btn:hover:not(:disabled) { background: var(--teal-dark); }
+  .save-image-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .save-text-btn {
+    background: #fff; color: var(--teal);
+    border: 1.5px solid var(--teal);
+    padding: 13px; border-radius: 12px;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    transition: all 0.18s;
+  }
+  .save-text-btn:hover { background: var(--teal-light); }
+  .result-id-display {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 14px;
+    background: var(--teal-light);
+    border: 1px dashed var(--teal);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.18s;
+  }
+  .result-id-display:hover { background: #D1FAE5; }
+  .result-id-display:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  .id-label {
+    font-weight: 700; color: var(--teal);
+    font-size: 11px; letter-spacing: 0.05em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .id-value {
+    flex: 1; min-width: 0;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px; color: var(--navy);
+    word-break: break-all;
+  }
+  .id-action {
+    font-size: 11px; color: var(--text-secondary);
+    font-weight: 500; flex-shrink: 0;
+  }
+  .result-id-hint {
+    font-size: 12px; font-weight: 500;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 6px 0 0;
+    text-align: center;
+    padding: 0 8px;
+  }
 </style>
 </head>
 
@@ -6638,7 +6891,7 @@ function goPrev() {
 }
 
 /* ---------- 10. 인사이트 브레이크 ---------- */
-function renderInsightBreakShell({ number, label, title, contentHtml, ctaText, onContinue, dark = false, saveBtn = false }) {
+function renderInsightBreakShell({ number, label, title, contentHtml, ctaText, onContinue, dark = false, saveBtn = false, extraSaveBlockHtml = '' }) {
   setProgress(null);
   gaEvent('compass_ib', { number });
 
@@ -6651,6 +6904,7 @@ function renderInsightBreakShell({ number, label, title, contentHtml, ctaText, o
       <div class="ib-content">${contentHtml}</div>
       <div class="ib-actions">
         ${saveBtn ? `<button class="btn btn-secondary" id="ib-save-btn" style="margin-bottom:10px;">결과 저장하기</button>` : ''}
+        ${extraSaveBlockHtml || ''}
         <button class="btn btn-primary" id="ib-cta" disabled>${ctaText}</button>
         <div class="muted center" id="ib-wait" style="margin-top:10px;">잠시 머물러 봅니다…</div>
       </div>
@@ -6678,96 +6932,478 @@ function renderInsightBreakShell({ number, label, title, contentHtml, ctaText, o
     });
   }
 
+  // PR #12 C4: extraSaveBlockHtml 내부 보조 버튼 바인딩 (텍스트 복사·ID 복사)
+  if (extraSaveBlockHtml) {
+    const copyTextBtn = overlay.querySelector('[data-save-action="copy-text"]');
+    if (copyTextBtn) copyTextBtn.addEventListener('click', copyResultAsText);
+    const idBox = overlay.querySelector('[data-save-action="copy-id"]');
+    if (idBox) {
+      idBox.addEventListener('click', copyResultId);
+      idBox.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); copyResultId(); }
+      });
+    }
+  }
+
   return overlay;
 }
 
 function isMobileDevice() {
   return /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
 }
+function isAndroidDevice() {
+  return /Android/i.test(navigator.userAgent);
+}
 
-async function saveIBImage(el) {
-  const target = el.querySelector('.ib-inner');
-  if (!window.html2canvas || !target) return;
+// PR #12 C1: 캡처 파이프라인 — 폰트 ready 대기 + html2canvas 옵션 강화 + 외부 타임아웃
+// (실제 다운로드/blob 변환·에러 fallback은 C2·C3에서 결합)
+async function captureResultImage(target) {
+  if (!window.html2canvas || !target) {
+    throw new Error('html2canvas 또는 캡처 대상이 준비되지 않았습니다');
+  }
 
-  const phaseTag = STATE.currentPhase === 3 ? '최종결과'
-                 : STATE.currentPhase === 2 ? 'Phase2'
-                 : 'Phase1';
-  const filename = `나침반_${phaseTag}_${(STATE.participantName||'나의결과').replace(/\s+/g,'_')}_${Date.now()}.png`;
-  const btn = el.querySelector('#ib-save-btn');
-  if (btn) { btn.disabled = true; btn.textContent = '이미지 생성 중…'; }
+  // 1) 외부 폰트 ready 대기 (3초 타임아웃 — 폰트 stuck이 html2canvas hang의 흔한 원인)
+  if (document.fonts && document.fonts.ready) {
+    try {
+      await Promise.race([
+        document.fonts.ready,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('font_ready_timeout')), 3000))
+      ]);
+    } catch (e) {
+      console.warn('[CompassResult] Font ready timeout — proceeding with system font fallback');
+    }
+  }
+
+  // 2) 캡처 모드 fallback 클래스 (외부 폰트 stuck/실패 케이스에서도 텍스트가 깨지지 않게)
+  target.classList.add('capture-mode-fallback-fonts');
+
+  // 3) html2canvas — Android 호환 옵션 (foreignObjectRendering:false, scale 제한 등)
+  const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) ? window.devicePixelRatio : 1;
+  const scale = dpr > 2 ? 2 : Math.max(1, dpr);
 
   try {
-    const canvas = await html2canvas(target, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
-    const blob = await new Promise(res => canvas.toBlob(res, 'image/png', 0.95));
-    if (!blob) throw new Error('blob conversion failed');
+    const canvas = await html2canvas(target, {
+      useCORS: true,
+      allowTaint: false,
+      scale,
+      backgroundColor: '#ffffff',
+      logging: false,
+      imageTimeout: 8000,
+      removeContainer: true,
+      foreignObjectRendering: false
+    });
+    return canvas;
+  } finally {
+    target.classList.remove('capture-mode-fallback-fonts');
+  }
+}
+
+async function captureResultImageWithTimeout(target, timeoutMs = 15000) {
+  return Promise.race([
+    captureResultImage(target),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('capture_timeout')), timeoutMs)
+    )
+  ]);
+}
+
+// PR #12 C2: canvas → Blob (Android 호환 — toBlob null·hang 폴백 포함)
+function canvasToBlob(canvas, type = 'image/png', quality = 0.95) {
+  return new Promise((resolve, reject) => {
+    if (canvas && canvas.toBlob) {
+      let settled = false;
+      // 일부 Android Chrome 버전에서 toBlob 콜백 미호출 케이스 대비 5초 안전망
+      const watchdog = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        try { resolve(dataURLToBlob(canvas.toDataURL(type, quality), type)); }
+        catch (e) { reject(e); }
+      }, 5000);
+      canvas.toBlob(blob => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(watchdog);
+        if (blob) resolve(blob);
+        else {
+          try { resolve(dataURLToBlob(canvas.toDataURL(type, quality), type)); }
+          catch (e) { reject(new Error('canvas.toBlob returned null')); }
+        }
+      }, type, quality);
+    } else if (canvas && canvas.toDataURL) {
+      try { resolve(dataURLToBlob(canvas.toDataURL(type, quality), type)); }
+      catch (e) { reject(e); }
+    } else {
+      reject(new Error('canvas_invalid'));
+    }
+  });
+}
+
+function dataURLToBlob(dataURL, type) {
+  const binary = atob(dataURL.split(',')[1]);
+  const array = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
+  return new Blob([array], { type });
+}
+
+// PR #12 C2: Android 호환 다운로드 트리거
+function downloadBlobAsImage(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.style.display = 'none';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    try { document.body.removeChild(a); } catch (e) {}
+    URL.revokeObjectURL(url);
+  }, 200);
+}
+
+// PR #12 C2: 진행/완료 토스트
+function showSaveProgress(message) {
+  let el = document.querySelector('.save-progress-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'save-progress-toast';
+    document.body.appendChild(el);
+  }
+  el.classList.remove('success');
+  el.innerHTML = `<div class="save-spinner" aria-hidden="true"></div><span>${escapeHtml(message)}</span>`;
+  void el.offsetWidth;
+  el.classList.add('visible');
+}
+function showSaveSuccess(message = '✓ 저장 완료') {
+  const el = document.querySelector('.save-progress-toast');
+  if (!el) return;
+  el.classList.add('success');
+  el.innerHTML = `<span>${escapeHtml(message)}</span>`;
+  setTimeout(() => hideSaveProgress(), 1800);
+}
+function hideSaveProgress() {
+  const el = document.querySelector('.save-progress-toast');
+  if (!el) return;
+  el.classList.remove('visible');
+  setTimeout(() => { try { el.remove(); } catch (e) {} }, 300);
+}
+
+// PR #12 C2: 새 탭에 이미지 + longpress 안내 (Android Web Share 미지원·다운로드 트리거 실패 시 폴백)
+function openImageInNewTabForLongpress(blob) {
+  const url = URL.createObjectURL(blob);
+  const w = window.open('', '_blank');
+  if (!w) return false;
+  w.document.open();
+  w.document.write(
+    '<!doctype html><html lang="ko"><head>' +
+    '<meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+    '<title>나침반 결과</title>' +
+    '<style>' +
+      'body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Pretendard Variable","Apple SD Gothic Neo",sans-serif;background:#F8F9FA;color:#1B2A4A;text-align:center;}' +
+      '.msg{padding:14px 16px;font-size:15px;background:#1A8F6A;color:#fff;font-weight:700;line-height:1.5;}' +
+      '.sub{padding:10px 16px;font-size:13px;color:#5A6B7D;background:#fff;}' +
+      'img{width:100%;display:block;}' +
+    '</style></head><body>' +
+    '<div class="msg">이미지를 <strong>길게 눌러</strong> "사진에 저장" 또는 "이미지 다운로드"를 선택해주세요</div>' +
+    '<div class="sub">저장 후 이 창은 닫으셔도 됩니다.</div>' +
+    '<img src="' + url + '" alt="나침반 결과" />' +
+    '</body></html>'
+  );
+  w.document.close();
+  return true;
+}
+
+// PR #12 C2: 마지막 저장 컨텍스트 (C3 retry용)
+let _lastSaveContext = null;
+
+// PR #12 C3: 결과 텍스트 빌더 — 클립보드·재방문용
+function buildResultAsText() {
+  const a = STATE.answers || {};
+  const name = STATE.participantName || '진단자';
+  const finalGoal = (typeof extractFinalGoal === 'function') ? extractFinalGoal(a) : null;
+  const goalText = finalGoal?.statement
+    || a.E14?.label || a[`D20-${STATE.route}`]?.label
+    || 'OT에서 함께 정함';
+  const route = STATE.route || '미정';
+  const passion = (typeof calculatePassionScore === 'function') ? calculatePassionScore(a) : null;
+  const passionStr = passion ? `${passion.percentage}%` : 'N/A';
+  const uuid = (typeof getOrCreateUUID === 'function') ? getOrCreateUUID() : '';
+
+  return (
+    '[100일 나침반 진단 결과]\n\n' +
+    '이름: ' + name + '\n' +
+    '최종 C형 목표: ' + goalText + '\n' +
+    '루트: ' + route + '\n' +
+    '간절함: ' + passionStr + '\n' +
+    '결과 ID: ' + (uuid || 'N/A') + '\n\n' +
+    '100일 나침반 진단 도구\n' +
+    'https://superdaddy-161921.github.io/compass-diagnostic/\n\n' +
+    'OT에서 이 결과를 함께 다듬어봅니다.'
+  );
+}
+
+// PR #12 C3: 클립보드 복사 (Clipboard API → execCommand 폴백)
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch (e) { /* execCommand 폴백 */ }
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function copyResultAsText() {
+  const text = buildResultAsText();
+  const ok = await copyTextToClipboard(text);
+  if (ok) {
+    showInlineToast('✓ 결과가 클립보드에 복사됐어요');
+    gaEvent('compass_save_result', { status: 'success', format: 'text_copy' });
+  } else {
+    showInlineToast('복사 실패 — 직접 선택해주세요');
+  }
+}
+
+async function copyResultId() {
+  const uuid = (typeof getOrCreateUUID === 'function') ? getOrCreateUUID() : null;
+  if (!uuid) { showInlineToast('결과 ID를 찾을 수 없어요'); return; }
+  const ok = await copyTextToClipboard(uuid);
+  if (ok) {
+    showInlineToast('✓ 결과 ID 복사됨');
+    gaEvent('compass_save_result', { status: 'success', format: 'uuid_copy' });
+  } else {
+    showInlineToast('결과 ID: ' + uuid);
+  }
+}
+
+function showInlineToast(message) {
+  // 기존 토스트 제거 (중첩 방지)
+  document.querySelectorAll('.inline-toast').forEach(t => t.remove());
+  const toast = document.createElement('div');
+  toast.className = 'inline-toast';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('fade-out');
+    setTimeout(() => { try { toast.remove(); } catch(e){} }, 320);
+  }, 2400);
+}
+
+function closeFallbackDialog() {
+  const d = document.getElementById('save-fallback-dialog');
+  if (d) d.remove();
+}
+
+function retrySaveResult() {
+  closeFallbackDialog();
+  if (_lastSaveContext) {
+    handleSaveResult(_lastSaveContext);
+  } else {
+    showInlineToast('재시도할 컨텍스트가 없어요');
+  }
+}
+
+function showScreenshotGuide() {
+  const guideHtml = `
+    <div class="screenshot-guide-overlay" id="screenshot-guide" role="dialog" aria-modal="true">
+      <div class="screenshot-guide-dialog">
+        <h2>📸 스크린샷으로 저장하기</h2>
+        <div class="guide-section">
+          <h3>Android 안드로이드</h3>
+          <p>전원 버튼 + 음량 줄임 버튼을 <strong>동시에</strong> 짧게 누르세요.</p>
+        </div>
+        <div class="guide-section">
+          <h3>iPhone 아이폰</h3>
+          <p>(홈 버튼 있음) 전원 버튼 + 홈 버튼</p>
+          <p>(홈 버튼 없음) 전원 버튼 + 음량 올림 버튼</p>
+        </div>
+        <div class="guide-section">
+          <h3>PC</h3>
+          <p>(Windows) Windows 키 + Shift + S</p>
+          <p>(Mac) Command + Shift + 4</p>
+        </div>
+        <p class="guide-tip">💡 진단 결과 화면 전체를 보이게 한 다음 스크린샷을 찍어주세요.</p>
+        <button class="guide-close" id="guide-close-btn">확인</button>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', guideHtml);
+  const overlay = document.getElementById('screenshot-guide');
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+    const btn = overlay.querySelector('#guide-close-btn');
+    if (btn) btn.addEventListener('click', () => overlay.remove());
+  }
+  gaEvent('compass_save_result', { status: 'info', format: 'screenshot_guide_view' });
+}
+
+// PR #12 C3: 저장 실패 시 본격 안전망 다이얼로그 (C2의 alert stub 대체)
+function showSaveErrorFallback(err) {
+  hideSaveProgress();
+  closeFallbackDialog();
+
+  const errMsg = err && err.message ? err.message : '알 수 없는 오류';
+  const safeErr = escapeHtml(errMsg);
+
+  const dialogHtml = `
+    <div class="save-fallback-overlay" id="save-fallback-dialog" role="dialog" aria-modal="true">
+      <div class="save-fallback-dialog">
+        <div class="fallback-icon" aria-hidden="true">📋</div>
+        <h2>이미지 저장이 안 되네요</h2>
+        <p>걱정 마세요. 결과는 다른 방법으로도 보관할 수 있어요.</p>
+        <div class="fallback-options">
+          <button class="fallback-btn fallback-btn-retry" data-action="retry">
+            🔄 다시 시도
+          </button>
+          <button class="fallback-btn" data-action="copy-text">
+            📋 결과를 텍스트로 복사
+            <span class="fallback-btn-sub">메모장·카톡에 붙여넣어 보관</span>
+          </button>
+          <button class="fallback-btn" data-action="screenshot-guide">
+            📸 스크린샷 안내 보기
+            <span class="fallback-btn-sub">기기 스크린샷으로 직접 저장</span>
+          </button>
+          <button class="fallback-btn" data-action="copy-id">
+            🔑 결과 ID 복사
+            <span class="fallback-btn-sub">OT에서 이 ID로 결과 다시 보기</span>
+          </button>
+        </div>
+        <button class="fallback-close" data-action="close">닫기</button>
+        <div class="fallback-error-detail">
+          <details>
+            <summary>오류 정보 (지원 요청 시)</summary>
+            <code>${safeErr}</code>
+          </details>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', dialogHtml);
+  gaEvent('compass_save_result', { status: 'failed_fallback_shown', error: errMsg });
+
+  const dlg = document.getElementById('save-fallback-dialog');
+  if (!dlg) return;
+  dlg.addEventListener('click', (e) => {
+    if (e.target === dlg) closeFallbackDialog();
+  });
+  dlg.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.getAttribute('data-action');
+      if (action === 'retry') return retrySaveResult();
+      if (action === 'copy-text') return copyResultAsText();
+      if (action === 'copy-id') return copyResultId();
+      if (action === 'screenshot-guide') return showScreenshotGuide();
+      if (action === 'close') return closeFallbackDialog();
+    });
+  });
+}
+
+// PR #12 C2: 결과 저장 통합 흐름
+async function handleSaveResult(opts = {}) {
+  const { target, filename, btn, phaseTag } = opts;
+  if (!target) {
+    showSaveErrorFallback(new Error('result_target_missing'));
+    return;
+  }
+  _lastSaveContext = { target, filename, btn, phaseTag };
+
+  if (btn) { btn.disabled = true; btn.dataset._origLabel = btn.textContent; btn.textContent = '이미지 생성 중…'; }
+  showSaveProgress('이미지 생성 중…');
+
+  try {
+    const canvas = await captureResultImageWithTimeout(target, 15000);
+    showSaveProgress('파일 준비 중…');
+    const blob = await canvasToBlob(canvas);
+    if (!blob) throw new Error('blob_null');
 
     const file = new File([blob], filename, { type: 'image/png' });
     const canShareFiles = !!(navigator.canShare && navigator.canShare({ files: [file] }));
 
-    // 1) Web Share API (파일 공유 가능한 경우 — iOS Safari 14.5+ / Android Chrome 등)
+    // 1) Web Share API (iOS Safari·일부 Android)
     if (canShareFiles && navigator.share) {
       try {
+        hideSaveProgress();
         await navigator.share({
           files: [file],
           title: '100일 나침반 진단 결과',
           text: `${STATE.participantName || '나'}의 갈망 프로필`
         });
-        gaEvent('compass_save_result', { format: 'share_files', phase: 1 });
+        gaEvent('compass_save_result', { status: 'success', format: 'share_files', phaseTag });
         return;
       } catch (err) {
-        // 사용자 취소(AbortError)는 그냥 종료
         if (err && err.name === 'AbortError') return;
-        // 그 외 실패 시 다음 단계로 fallthrough
+        // fallthrough
       }
     }
 
-    // 2) 모바일 + Web Share 미지원 → 새 창에 이미지 + 길게 눌러 저장 안내
-    if (isMobileDevice()) {
-      const url = URL.createObjectURL(blob);
-      const w = window.open('', '_blank');
-      if (!w) {
-        alert('새 창이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도해주세요.');
+    // 2) Android — 다운로드 → 실패 시 새 탭(longpress) 폴백
+    if (isAndroidDevice()) {
+      try {
+        downloadBlobAsImage(blob, filename);
+        gaEvent('compass_save_result', { status: 'success', format: 'android_download', phaseTag });
+        showSaveSuccess('✓ 저장 완료 — Downloads 폴더 확인');
         return;
+      } catch (err) {
+        const ok = openImageInNewTabForLongpress(blob);
+        if (ok) {
+          gaEvent('compass_save_result', { status: 'success', format: 'newtab_longpress', phaseTag });
+          hideSaveProgress();
+          return;
+        }
+        throw err;
       }
-      w.document.open();
-      w.document.write(
-        '<!doctype html><html lang="ko"><head>' +
-        '<meta charset="utf-8">' +
-        '<meta name="viewport" content="width=device-width, initial-scale=1">' +
-        '<title>나침반 결과</title>' +
-        '<style>' +
-          'body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Pretendard Variable","Apple SD Gothic Neo",sans-serif;background:#F8F9FA;color:#1B2A4A;text-align:center;}' +
-          '.msg{padding:14px 16px;font-size:15px;background:#1A8F6A;color:#fff;font-weight:700;line-height:1.5;}' +
-          '.sub{padding:10px 16px;font-size:13px;color:#5A6B7D;background:#fff;}' +
-          'img{width:100%;display:block;}' +
-        '</style></head><body>' +
-        '<div class="msg">이미지를 <strong>길게 눌러</strong> "사진에 저장" 또는 "이미지 다운로드"를 선택해주세요</div>' +
-        '<div class="sub">저장 후 이 창은 닫으셔도 됩니다.</div>' +
-        '<img src="' + url + '" alt="나침반 결과" />' +
-        '</body></html>'
-      );
-      w.document.close();
-      gaEvent('compass_save_result', { format: 'newtab_longpress', phase: 1 });
+    }
+
+    // 3) 그 외 모바일 → 새 탭
+    if (isMobileDevice()) {
+      const ok = openImageInNewTabForLongpress(blob);
+      if (!ok) throw new Error('popup_blocked');
+      gaEvent('compass_save_result', { status: 'success', format: 'newtab_longpress', phaseTag });
+      hideSaveProgress();
       return;
     }
 
-    // 3) 데스크톱 → 기존 다운로드
-    const link = document.createElement('a');
-    link.download = filename;
-    link.href = URL.createObjectURL(blob);
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => {
-      URL.revokeObjectURL(link.href);
-      link.remove();
-    }, 1000);
-    gaEvent('compass_save_result', { format: 'download', phase: 1 });
+    // 4) 데스크톱
+    downloadBlobAsImage(blob, filename);
+    gaEvent('compass_save_result', { status: 'success', format: 'download', phaseTag });
+    showSaveSuccess('✓ 저장 완료');
   } catch (err) {
-    console.error('saveIBImage error:', err);
-    alert('결과 저장 중 문제가 발생했습니다. 다시 시도해주세요.');
+    console.error('[CompassResult] handleSaveResult failed:', err);
+    gaEvent('compass_save_result', { status: 'failed', error: err && err.message || String(err), phaseTag });
+    showSaveErrorFallback(err);
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '결과 저장하기'; }
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = btn.dataset._origLabel || '결과 저장하기';
+      delete btn.dataset._origLabel;
+    }
   }
+}
+
+// 기존 saveIBImage — 새 파이프라인에 위임 (호출처 호환 유지)
+async function saveIBImage(el) {
+  const target = el && el.querySelector ? el.querySelector('.ib-inner') : null;
+  const btn = el && el.querySelector ? el.querySelector('#ib-save-btn') : null;
+  const phaseTag = STATE.currentPhase === 3 ? '최종결과'
+                 : STATE.currentPhase === 2 ? 'Phase2'
+                 : 'Phase1';
+  const filename = `나침반_${phaseTag}_${(STATE.participantName||'나의결과').replace(/\s+/g,'_')}_${Date.now()}.png`;
+  await handleSaveResult({ target, filename, btn, phaseTag });
 }
 
 /* IB1: 키워드 1개 */
@@ -7982,6 +8618,25 @@ function renderIB8() {
     </p>
   `;
 
+  // PR #12 C4: IB#8 결과 페이지에 항상 보이는 보조 안전망 옵션
+  const uuidForDisplay = (typeof getOrCreateUUID === 'function') ? getOrCreateUUID() : '';
+  const extraSaveBlockHtml = `
+    <div class="ib8-save-options">
+      <button class="save-text-btn" data-save-action="copy-text">
+        📋 결과를 텍스트로 복사
+      </button>
+      <div class="result-id-display" data-save-action="copy-id" role="button" tabindex="0" aria-label="결과 ID 클립보드에 복사">
+        <span class="id-label">결과 ID</span>
+        <code class="id-value">${escapeHtml(uuidForDisplay)}</code>
+        <span class="id-action">📋 탭하여 복사</span>
+      </div>
+      <p class="result-id-hint">
+        💡 이미지 저장이 안 되면 위 옵션으로 결과를 보관하세요.<br>
+        OT에서 결과 ID를 알려주시면 다시 확인할 수 있어요.
+      </p>
+    </div>
+  `;
+
   renderInsightBreakShell({
     number: 8,
     label: 'Phase 3 · 인사이트 브레이크 2/2 · 최종 결과',
@@ -7989,6 +8644,7 @@ function renderIB8() {
     contentHtml: html,
     ctaText: 'OT에서 만나요',
     saveBtn: true,
+    extraSaveBlockHtml,
     onContinue: () => {
       const uuid = getOrCreateUUID();
       try {
